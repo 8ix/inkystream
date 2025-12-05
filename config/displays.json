@@ -1,0 +1,74 @@
+{
+  "displays": [
+    {
+      "id": "inky_frame_7_spectra6",
+      "name": "Inky Frame 7.3\" Spectra 6",
+      "description": "Pimoroni Inky Frame 7.3\" with 6-colour Spectra display (800×480)",
+      "width": 800,
+      "height": 480,
+      "palette": ["#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00"],
+      "manufacturer": "Pimoroni",
+      "defaultDithering": "floyd-steinberg"
+    },
+    {
+      "id": "inky_frame_5_spectra6",
+      "name": "Inky Frame 5.7\" Spectra 6",
+      "description": "Pimoroni Inky Frame 5.7\" with 6-colour Spectra display (600×448)",
+      "width": 600,
+      "height": 448,
+      "palette": ["#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00"],
+      "manufacturer": "Pimoroni",
+      "defaultDithering": "floyd-steinberg"
+    },
+    {
+      "id": "inky_frame_4_spectra6",
+      "name": "Inky Frame 4\" Spectra 6",
+      "description": "Pimoroni Inky Frame 4\" with 6-colour Spectra display (640×400)",
+      "width": 640,
+      "height": 400,
+      "palette": ["#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00"],
+      "manufacturer": "Pimoroni",
+      "defaultDithering": "floyd-steinberg"
+    },
+    {
+      "id": "inky_frame_7_legacy",
+      "name": "Inky Frame 7.3\" (Legacy 7-colour)",
+      "description": "Older Pimoroni Inky Frame 7.3\" with 7-colour display (pre-Sept 2025)",
+      "width": 800,
+      "height": 480,
+      "palette": ["#000000", "#FFFFFF", "#00FF00", "#0000FF", "#FF0000", "#FFFF00", "#FFA500"],
+      "manufacturer": "Pimoroni",
+      "defaultDithering": "floyd-steinberg"
+    },
+    {
+      "id": "eink_bwr",
+      "name": "3-colour (Black/White/Red)",
+      "description": "Classic 3-colour e-ink display",
+      "width": 800,
+      "height": 480,
+      "palette": ["#000000", "#FFFFFF", "#FF0000"],
+      "manufacturer": "Generic",
+      "defaultDithering": "floyd-steinberg"
+    },
+    {
+      "id": "eink_bwy",
+      "name": "3-colour (Black/White/Yellow)",
+      "description": "Classic 3-colour e-ink display",
+      "width": 800,
+      "height": 480,
+      "palette": ["#000000", "#FFFFFF", "#FFFF00"],
+      "manufacturer": "Generic",
+      "defaultDithering": "floyd-steinberg"
+    },
+    {
+      "id": "eink_bw",
+      "name": "2-colour (Black/White)",
+      "description": "Monochrome e-ink display",
+      "width": 800,
+      "height": 480,
+      "palette": ["#000000", "#FFFFFF"],
+      "manufacturer": "Generic",
+      "defaultDithering": "floyd-steinberg"
+    }
+  ]
+}
