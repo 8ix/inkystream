@@ -1,0 +1,15 @@
+{
+  "id": "ec82eb7f-01ec-495d-9d06-b013f82f3ab9",
+  "originalFilename": "reuben-grump-face.jpg",
+  "categoryId": "family",
+  "processedAt": "2025-12-05T23:24:24.259Z",
+  "variants": [
+    {
+      "deviceId": "picture-fame",
+      "displayId": "inky_frame_7_legacy",
+      "filename": "picture-fame.png",
+      "width": 800,
+      "height": 480
+    }
+  ]
+}

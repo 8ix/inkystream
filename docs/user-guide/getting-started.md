@@ -14,10 +14,11 @@ InkyStream transforms your personal photos into beautifully dithered images opti
 ## Quick Start Overview
 
 1. **Set up locally** - Run InkyStream on your computer
-2. **Upload images** - Add your photos through the web interface
-3. **Process images** - Convert them for your e-ink display
-4. **Deploy to Vercel** - Make images accessible to your frames
-5. **Configure frames** - Point your e-ink frames to the API
+2. **Create a device** - Register your e-ink frame
+3. **Upload images** - Add your photos through the web interface
+4. **Process images** - Convert them for your e-ink display
+5. **Deploy to Vercel** - Make images accessible to your frames
+6. **Configure frames** - Point your e-ink frames to the API
 
 ## Prerequisites
 
@@ -38,7 +39,7 @@ git --version   # Any recent version
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/inkystream.git
+git clone https://github.com/8ix/inkystream.git
 
 # Enter the directory
 cd inkystream
@@ -55,40 +56,71 @@ npm run dev
 
 Open your browser to [http://localhost:3000](http://localhost:3000)
 
-You should see the InkyStream dashboard.
+You should see the InkyStream dashboard with a vibrant purple theme.
 
 ## Step 3: Explore the Interface
 
 ### Dashboard
 The main dashboard shows:
 - Total images in your library
-- Images per category
-- Recent processing activity
+- Number of categories and devices
+- Recent uploads
+- Quick access to upload
+
+### Devices Page
+Navigate to **Devices** to manage your e-ink frames:
+- Create devices for each frame
+- Assign display profiles
+- View API endpoints
+
+### Categories Page
+Navigate to **Categories** to organize your images:
+- Create custom categories
+- Set colors for visual organization
+- View image counts
 
 ### Upload Page
 Navigate to **Upload** to add new images:
 - Drag and drop images
 - Select a category
-- Choose display types
+- Choose devices to generate for
+- Configure fit mode and enhancements
 - Process images
 
 ### Gallery Page
 Navigate to **Gallery** to manage your images:
 - View all processed images
-- Filter by category
+- Filter by category or device
 - See processing details
+- Delete images
 
-## Step 4: Upload Your First Image
+## Step 4: Create Your First Device
+
+Before uploading images, create a device for your e-ink frame:
+
+1. Click **Devices** in the navigation
+2. Click **Add Device**
+3. Enter a name (e.g., "Living Room Frame")
+4. Select the display type that matches your hardware
+5. Click **Create Device**
+
+Your device is now ready to receive images.
+
+## Step 5: Upload Your First Image
 
 1. Click **Upload** in the navigation
 2. Drag a photo onto the upload area (or click to browse)
 3. Select a **Category** (e.g., "Landscapes")
-4. Choose **Display Types** to generate
-5. Click **Process**
-6. Wait for processing to complete
-7. View your processed image in the Gallery
+4. Check the **Device(s)** to generate images for
+5. Choose a **Fit Mode**:
+   - **Smart Fit** (recommended): Auto-rotates and chooses best fit
+   - **Fill Frame**: Fills frame, may crop edges
+   - **Fit Entire Image**: Shows whole image with letterboxing
+6. Click **Process**
+7. Wait for processing to complete
+8. View your processed image in the Gallery
 
-## Step 5: Deploy to Vercel
+## Step 6: Deploy to Vercel
 
 ### First-time Setup
 
@@ -117,15 +149,17 @@ git push
 
 Vercel automatically deploys updates.
 
-## Step 6: Configure Your E-ink Frame
+## Step 7: Configure Your E-ink Frame
 
 ### API Endpoints
 
-Your frame needs to call the InkyStream API:
+Your frame uses device-specific endpoints:
 
-- **Current image**: `GET /api/current?display={type}&category={category}`
-- **Next image**: `GET /api/next?display={type}&category={category}`
-- **Random image**: `GET /api/random?display={type}&category={category}`
+| Endpoint | Description |
+|----------|-------------|
+| `/api/devices/{deviceId}/current` | Get current image |
+| `/api/devices/{deviceId}/next` | Rotate to next image |
+| `/api/devices/{deviceId}/random` | Get random image |
 
 ### Example Frame Code
 
@@ -135,11 +169,10 @@ import urequests
 import ujson
 
 API_BASE = "https://your-project.vercel.app"
-DISPLAY = "inky_frame_7_spectra"
-CATEGORY = "landscapes"
+DEVICE_ID = "living-room-frame"  # Your device ID
 
 def get_image_url():
-    url = f"{API_BASE}/api/current?display={DISPLAY}&category={CATEGORY}"
+    url = f"{API_BASE}/api/devices/{DEVICE_ID}/random"
     response = urequests.get(url)
     data = ujson.loads(response.text)
     return API_BASE + data["data"]["imageUrl"]
@@ -168,7 +201,7 @@ Now that you're set up:
 
 ### Images don't appear on frame
 - Verify your API URL is correct
-- Check the display type parameter matches your frame
+- Check the device ID matches what's in InkyStream
 - Test the API in a browser first
 
 ### Deployment fails
@@ -181,6 +214,5 @@ See the full [Troubleshooting Guide](../setup/troubleshooting.md) for more help.
 ## Need Help?
 
 - Check the [Documentation](../README.md)
-- Search [GitHub Issues](https://github.com/yourusername/inkystream/issues)
-- Ask in [GitHub Discussions](https://github.com/yourusername/inkystream/discussions)
-
+- Search [GitHub Issues](https://github.com/8ix/inkystream/issues)
+- Ask in [GitHub Discussions](https://github.com/8ix/inkystream/discussions)

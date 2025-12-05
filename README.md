@@ -13,9 +13,12 @@ InkyStream is an open-source application that helps you process and serve images
 ## Features
 
 - **Local Admin Interface** - Process and manage images through a beautiful web UI
-- **Multiple Display Support** - Optimized for various e-ink displays (Inky Frame 7", etc.)
-- **Category Organization** - Organize images into categories for different frames
+- **Device Management** - Create named devices for each of your e-ink frames
+- **Category Organization** - Organize images into categories with custom colors
+- **Smart Image Fitting** - Auto-rotate and intelligently fit images to frames
 - **Dithering Algorithms** - Floyd-Steinberg, Atkinson, and Ordered dithering
+- **Image Enhancement** - Contrast boost, saturation, denoising, and sharpening
+- **Multiple Display Support** - Pimoroni Inky Frame, Waveshare, and more
 - **Zero Hosting Costs** - Deploy to Vercel's free tier
 - **Simple Deployment** - Just `git push` to deploy updates
 
@@ -31,7 +34,7 @@ InkyStream is an open-source application that helps you process and serve images
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/inkystream.git
+git clone https://github.com/8ix/inkystream.git
 cd inkystream
 
 # Install dependencies
@@ -45,12 +48,14 @@ Open [http://localhost:3000](http://localhost:3000) to access the admin interfac
 
 ### Your First Image
 
-1. Navigate to **Upload** in the admin interface
-2. Drag and drop an image
-3. Select a category (e.g., "Landscapes")
-4. Choose display types to generate
-5. Click **Process**
-6. View your processed image in the **Gallery**
+1. Navigate to **Devices** and create a device (e.g., "Living Room Frame")
+2. Select the display type that matches your e-ink hardware
+3. Go to **Upload** and drag-and-drop an image
+4. Select a category (e.g., "Landscapes")
+5. Choose your device(s) to generate images for
+6. Select a fit mode (Smart Fit recommended)
+7. Click **Process**
+8. View your processed image in the **Gallery**
 
 ### Deploy to Vercel
 
@@ -75,12 +80,16 @@ inkystream/
 ├── app/                    # Next.js application
 │   ├── (admin)/           # Local-only admin pages
 │   │   ├── upload/        # Image upload interface
-│   │   └── gallery/       # Gallery management
+│   │   ├── gallery/       # Gallery management
+│   │   ├── categories/    # Category management
+│   │   └── devices/       # Device management
 │   └── api/               # API routes (deployed)
-│       ├── current/       # Get current image
-│       ├── next/          # Rotate to next image
-│       ├── random/        # Get random image
-│       ├── categories/    # List categories
+│       ├── devices/       # Device-specific endpoints
+│       │   └── [deviceId]/
+│       │       ├── current/   # Get current image
+│       │       ├── next/      # Rotate to next image
+│       │       └── random/    # Get random image
+│       ├── categories/    # List/manage categories
 │       └── displays/      # List display types
 ├── lib/                   # Shared libraries
 │   ├── processors/        # Dithering algorithms
@@ -89,6 +98,7 @@ inkystream/
 │   └── utils/             # Utility functions
 ├── config/                # Configuration
 │   ├── categories.json    # Category definitions
+│   ├── devices.json       # Your devices
 │   └── displays.json      # Display profiles
 ├── public/images/         # Processed images
 ├── components/            # React components
@@ -97,12 +107,32 @@ inkystream/
 
 ## API Reference
 
-### GET /api/current
+### Device-Specific Endpoints (Recommended)
 
-Get the current image for a display.
+These endpoints use your device ID for cleaner URLs:
+
+#### GET /api/devices/{deviceId}/current
+
+Get the current image for a device.
 
 ```bash
-curl "https://your-domain.vercel.app/api/current?display=inky_frame_7_spectra&category=landscapes"
+curl "https://your-domain.vercel.app/api/devices/living-room-frame/current"
+```
+
+#### GET /api/devices/{deviceId}/next
+
+Rotate to the next image.
+
+```bash
+curl "https://your-domain.vercel.app/api/devices/living-room-frame/next"
+```
+
+#### GET /api/devices/{deviceId}/random
+
+Get a random image.
+
+```bash
+curl "https://your-domain.vercel.app/api/devices/living-room-frame/random?category=landscapes"
 ```
 
 **Response:**
@@ -110,44 +140,25 @@ curl "https://your-domain.vercel.app/api/current?display=inky_frame_7_spectra&ca
 {
   "success": true,
   "data": {
-    "imageUrl": "/images/landscapes/abc123/inky_frame_7_spectra.png",
+    "imageUrl": "/images/landscapes/abc123/living-room-frame.png",
     "imageId": "abc123",
     "categoryId": "landscapes",
-    "displayId": "inky_frame_7_spectra"
+    "deviceId": "living-room-frame"
   }
 }
 ```
 
-### GET /api/next
-
-Rotate to the next image.
+### Other Endpoints
 
 ```bash
-curl "https://your-domain.vercel.app/api/next?display=inky_frame_7_spectra"
-```
-
-### GET /api/random
-
-Get a random image.
-
-```bash
-curl "https://your-domain.vercel.app/api/random?display=inky_frame_7_spectra"
-```
-
-### GET /api/categories
-
-List all categories.
-
-```bash
+# List all categories
 curl "https://your-domain.vercel.app/api/categories"
-```
 
-### GET /api/displays
-
-List supported display types.
-
-```bash
+# List supported display types
 curl "https://your-domain.vercel.app/api/displays"
+
+# List your devices
+curl "https://your-domain.vercel.app/api/devices"
 ```
 
 ## Frame Configuration
@@ -159,11 +170,10 @@ import urequests
 import ujson
 
 API_BASE = "https://your-domain.vercel.app"
-DISPLAY_TYPE = "inky_frame_7_spectra"
-CATEGORY = "landscapes"
+DEVICE_ID = "living-room-frame"  # Your device ID from InkyStream
 
 def get_image_url():
-    url = f"{API_BASE}/api/current?display={DISPLAY_TYPE}&category={CATEGORY}"
+    url = f"{API_BASE}/api/devices/{DEVICE_ID}/random"
     response = urequests.get(url)
     data = ujson.loads(response.text)
     return API_BASE + data["data"]["imageUrl"]
@@ -172,44 +182,44 @@ def get_image_url():
 image_url = get_image_url()
 ```
 
-## Configuration
+See [Frame Configuration Guide](docs/user-guide/frame-configuration.md) for complete examples.
+
+## Image Processing Options
+
+### Fit Modes
+
+- **Smart Fit** - Auto-rotates and chooses best fit to minimize cropping
+- **Fill Frame (Cover)** - Fills entire frame, may crop edges
+- **Fit Entire Image (Contain)** - Shows whole image with letterboxing
+
+### Enhancement Options
+
+- **Auto Contrast** - Automatically adjust levels
+- **Saturation Boost** - Make colors more vivid for e-ink
+- **Noise Reduction** - Reduce speckling in gradients
+- **Sharpening** - Restore edge clarity
+
+### Dithering Algorithms
+
+- **Floyd-Steinberg** - Best for photos (recommended)
+- **Atkinson** - Good for high-contrast images
+- **Ordered** - Better for graphics with sharp edges
+
+## Managing Content
 
 ### Categories
 
-Edit `config/categories.json`:
+Manage categories through the **Categories** page:
+- Add new categories with custom colors
+- Edit category names and descriptions
+- Delete empty categories
 
-```json
-{
-  "categories": [
-    {
-      "id": "landscapes",
-      "name": "Landscapes",
-      "description": "Nature and scenic views",
-      "colour": "#228B22"
-    }
-  ]
-}
-```
+### Devices
 
-### Display Profiles
-
-Edit `config/displays.json`:
-
-```json
-{
-  "displays": [
-    {
-      "id": "inky_frame_7_spectra",
-      "name": "Inky Frame 7.3\" (Spectra)",
-      "width": 800,
-      "height": 480,
-      "palette": ["#000000", "#FFFFFF", "#00FF00", "#0000FF", "#FF0000", "#FFFF00", "#FFA500"],
-      "manufacturer": "Pimoroni",
-      "defaultDithering": "floyd-steinberg"
-    }
-  ]
-}
-```
+Manage devices through the **Devices** page:
+- Create devices for each e-ink frame
+- Assign display profiles (resolution, color palette)
+- Get API endpoint URLs
 
 ## Development
 
@@ -243,7 +253,7 @@ Full documentation is available in the `/docs` directory:
 
 InkyStream uses a split architecture:
 
-- **Local Only**: Admin interface (upload, gallery, dashboard)
+- **Local Only**: Admin interface (upload, gallery, categories, devices)
 - **Deployed**: API routes and processed images
 
 This ensures:
@@ -275,10 +285,9 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## Support
 
 - [Documentation](docs/README.md)
-- [GitHub Issues](https://github.com/yourusername/inkystream/issues)
-- [GitHub Discussions](https://github.com/yourusername/inkystream/discussions)
+- [GitHub Issues](https://github.com/8ix/inkystream/issues)
+- [GitHub Discussions](https://github.com/8ix/inkystream/discussions)
 
 ---
 
 Made with ♥ for the e-ink community
-

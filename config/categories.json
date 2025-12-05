@@ -17,7 +17,12 @@
       "name": "Art",
       "description": "Artistic and abstract images",
       "colour": "#9370DB"
+    },
+    {
+      "id": "glorious",
+      "name": "Glorious",
+      "description": "Very good",
+      "colour": "#84CC16"
     }
   ]
 }
-

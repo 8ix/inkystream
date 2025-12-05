@@ -27,21 +27,30 @@ All endpoints return JSON with a consistent structure:
 }
 ```
 
-## Endpoints
+---
 
-### GET /api/current
+## Device-Specific Endpoints
 
-Returns the current image for a specific display and category.
+These are the recommended endpoints for e-ink frames. They use your device ID for cleaner URLs and ensure images are properly sized for your specific hardware.
+
+### GET /api/devices/{deviceId}/random
+
+Returns a random image for the specified device.
+
+**Path Parameters**:
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `deviceId` | string | Your device ID (e.g., `living-room-frame`) |
 
 **Query Parameters**:
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `display` | string | Yes | Display profile ID (e.g., `inky_frame_7_spectra`) |
-| `category` | string | No | Category ID (e.g., `landscapes`). If omitted, uses all categories |
+| `category` | string | No | Category ID to filter by |
 
 **Example Request**:
 ```bash
-curl "https://your-domain/api/current?display=inky_frame_7_spectra&category=landscapes"
+curl "https://your-domain/api/devices/living-room-frame/random"
+curl "https://your-domain/api/devices/living-room-frame/random?category=landscapes"
 ```
 
 **Success Response**:
@@ -49,33 +58,37 @@ curl "https://your-domain/api/current?display=inky_frame_7_spectra&category=land
 {
   "success": true,
   "data": {
-    "imageUrl": "/images/landscapes/abc123/inky_frame_7_spectra.png",
+    "imageUrl": "/images/landscapes/abc123/living-room-frame.png",
     "imageId": "abc123",
     "categoryId": "landscapes",
-    "displayId": "inky_frame_7_spectra"
+    "deviceId": "living-room-frame"
   }
 }
 ```
 
 **Error Responses**:
-- `400`: Missing or invalid display parameter
-- `404`: No images found for the specified criteria
+- `400`: Invalid device ID
+- `404`: No images found for device/category
 
 ---
 
-### GET /api/next
+### GET /api/devices/{deviceId}/next
 
-Rotates to the next image and returns it.
+Rotates to the next image in sequence and returns it.
+
+**Path Parameters**:
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `deviceId` | string | Your device ID |
 
 **Query Parameters**:
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `display` | string | Yes | Display profile ID |
-| `category` | string | No | Category ID |
+| `category` | string | No | Category ID to filter by |
 
 **Example Request**:
 ```bash
-curl "https://your-domain/api/next?display=inky_frame_7_spectra&category=landscapes"
+curl "https://your-domain/api/devices/living-room-frame/next"
 ```
 
 **Success Response**:
@@ -83,31 +96,28 @@ curl "https://your-domain/api/next?display=inky_frame_7_spectra&category=landsca
 {
   "success": true,
   "data": {
-    "imageUrl": "/images/landscapes/def456/inky_frame_7_spectra.png",
+    "imageUrl": "/images/art/def456/living-room-frame.png",
     "imageId": "def456",
-    "categoryId": "landscapes",
-    "displayId": "inky_frame_7_spectra",
-    "position": 2,
-    "total": 15
+    "categoryId": "art",
+    "deviceId": "living-room-frame"
   }
 }
 ```
 
 ---
 
-### GET /api/random
+### GET /api/devices/{deviceId}/current
 
-Returns a random image from the specified category.
+Returns the currently set image for a device, or 404 if none is set.
 
-**Query Parameters**:
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `display` | string | Yes | Display profile ID |
-| `category` | string | No | Category ID |
+**Path Parameters**:
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `deviceId` | string | Your device ID |
 
 **Example Request**:
 ```bash
-curl "https://your-domain/api/random?display=inky_frame_7_spectra"
+curl "https://your-domain/api/devices/living-room-frame/current"
 ```
 
 **Success Response**:
@@ -115,21 +125,94 @@ curl "https://your-domain/api/random?display=inky_frame_7_spectra"
 {
   "success": true,
   "data": {
-    "imageUrl": "/images/art/xyz789/inky_frame_7_spectra.png",
-    "imageId": "xyz789",
-    "categoryId": "art",
-    "displayId": "inky_frame_7_spectra"
+    "imageUrl": "/images/landscapes/abc123/living-room-frame.png",
+    "imageId": "abc123",
+    "categoryId": "landscapes",
+    "deviceId": "living-room-frame"
   }
 }
 ```
 
 ---
+
+### POST /api/devices/{deviceId}/current
+
+Sets the current image for a device.
+
+**Path Parameters**:
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `deviceId` | string | Your device ID |
+
+**Request Body**:
+```json
+{
+  "imageId": "abc123",
+  "categoryId": "landscapes"
+}
+```
+
+**Success Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "imageUrl": "/images/landscapes/abc123/living-room-frame.png",
+    "imageId": "abc123",
+    "categoryId": "landscapes",
+    "deviceId": "living-room-frame"
+  }
+}
+```
+
+---
+
+## Device Management Endpoints
+
+### GET /api/devices
+
+Lists all configured devices.
+
+**Example Request**:
+```bash
+curl "https://your-domain/api/devices"
+```
+
+**Success Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "devices": [
+      {
+        "id": "living-room-frame",
+        "name": "Living Room Frame",
+        "displayId": "inky_frame_7_spectra6",
+        "createdAt": "2024-01-15T10:30:00Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### GET /api/devices/{deviceId}
+
+Get details for a specific device.
+
+**Example Request**:
+```bash
+curl "https://your-domain/api/devices/living-room-frame"
+```
+
+---
+
+## Category Endpoints
 
 ### GET /api/categories
 
-Lists all available categories.
-
-**Query Parameters**: None
+Lists all available categories with image counts.
 
 **Example Request**:
 ```bash
@@ -163,11 +246,22 @@ curl "https://your-domain/api/categories"
 
 ---
 
+### GET /api/categories/{categoryId}
+
+Get details for a specific category.
+
+**Example Request**:
+```bash
+curl "https://your-domain/api/categories/landscapes"
+```
+
+---
+
+## Display Profile Endpoints
+
 ### GET /api/displays
 
 Lists all supported display types.
-
-**Query Parameters**: None
 
 **Example Request**:
 ```bash
@@ -181,19 +275,12 @@ curl "https://your-domain/api/displays"
   "data": {
     "displays": [
       {
-        "id": "inky_frame_7_spectra",
-        "name": "Inky Frame 7.3\" (Spectra)",
-        "description": "Pimoroni Inky Frame 7.3\" with 7-colour Spectra display",
+        "id": "inky_frame_7_spectra6",
+        "name": "Inky Frame 7.3\" Spectra 6",
+        "description": "Pimoroni Inky Frame 7.3\" with 6-colour Spectra 6 display",
         "width": 800,
         "height": 480,
-        "manufacturer": "Pimoroni"
-      },
-      {
-        "id": "inky_frame_7_colour",
-        "name": "Inky Frame 7.3\" (Colour)",
-        "description": "Pimoroni Inky Frame 7.3\" with colour display",
-        "width": 800,
-        "height": 480,
+        "palette": ["#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00"],
         "manufacturer": "Pimoroni"
       }
     ]
@@ -203,32 +290,33 @@ curl "https://your-domain/api/displays"
 
 ---
 
-### GET /api/schedule
+## Legacy Endpoints
 
-Returns the configured rotation schedule.
+These endpoints use display type directly (for backwards compatibility):
 
-**Query Parameters**: None
+### GET /api/current
 
-**Example Request**:
-```bash
-curl "https://your-domain/api/schedule"
-```
+**Query Parameters**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `display` | string | Yes | Display profile ID |
+| `category` | string | No | Category ID |
 
-**Success Response**:
-```json
-{
-  "success": true,
-  "data": {
-    "defaultRotationHours": 6,
-    "schedules": [
-      {
-        "categoryId": "landscapes",
-        "rotationHours": 12
-      }
-    ]
-  }
-}
-```
+### GET /api/next
+
+**Query Parameters**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `display` | string | Yes | Display profile ID |
+| `category` | string | No | Category ID |
+
+### GET /api/random
+
+**Query Parameters**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `display` | string | Yes | Display profile ID |
+| `category` | string | No | Category ID |
 
 ---
 
@@ -238,6 +326,7 @@ curl "https://your-domain/api/schedule"
 |------|-------------|
 | 400 | Bad Request - Missing or invalid parameters |
 | 404 | Not Found - Resource doesn't exist |
+| 409 | Conflict - Cannot complete action (e.g., delete category with images) |
 | 500 | Internal Server Error - Server-side issue |
 
 ## Rate Limiting
@@ -257,11 +346,10 @@ import urequests
 import ujson
 
 API_BASE = "https://your-domain.vercel.app"
-DISPLAY_TYPE = "inky_frame_7_spectra"
-CATEGORY = "landscapes"
+DEVICE_ID = "living-room-frame"
 
-def get_current_image():
-    url = f"{API_BASE}/api/current?display={DISPLAY_TYPE}&category={CATEGORY}"
+def get_random_image():
+    url = f"{API_BASE}/api/devices/{DEVICE_ID}/random"
     response = urequests.get(url)
     data = ujson.loads(response.text)
     
@@ -270,12 +358,19 @@ def get_current_image():
         return image_url
     return None
 
-def download_and_display(image_url):
-    # Download image
-    response = urequests.get(image_url)
-    # Display on e-ink (implementation depends on frame)
-    # ...
+def get_next_image():
+    url = f"{API_BASE}/api/devices/{DEVICE_ID}/next"
+    response = urequests.get(url)
+    data = ujson.loads(response.text)
+    
+    if data["success"]:
+        image_url = API_BASE + data["data"]["imageUrl"]
+        return image_url
+    return None
+
+# Usage
+image_url = get_random_image()
+# Download and display...
 ```
 
 See [Frame Configuration](../user-guide/frame-configuration.md) for complete examples.
-

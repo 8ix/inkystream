@@ -37,6 +37,6 @@ Welcome to the InkyStream documentation. This guide will help you understand, se
 
 If you encounter issues:
 1. Check the [Troubleshooting Guide](./setup/troubleshooting.md)
-2. Search existing [GitHub Issues](https://github.com/yourusername/inkystream/issues)
+2. Search existing [GitHub Issues](https://github.com/8ix/inkystream/issues)
 3. Open a new issue if your problem isn't covered
 

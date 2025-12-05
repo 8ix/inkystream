@@ -11,6 +11,27 @@ InkyStream accepts these image formats:
 
 **Maximum file size**: 20MB per image
 
+## Before You Upload
+
+### Create Devices First
+
+Before uploading, ensure you have at least one device configured:
+
+1. Go to **Devices** page
+2. Click **Add Device**
+3. Enter a name and select display type
+4. Click **Create Device**
+
+### Understand Fit Modes
+
+When uploading, you'll choose how images fit into frames:
+
+| Mode | Description | Best For |
+|------|-------------|----------|
+| **Smart Fit** | Auto-rotates and chooses best fit | Most images (recommended) |
+| **Fill Frame** | Covers entire frame, may crop | Landscape photos matching frame orientation |
+| **Fit Entire Image** | Shows full image with letterboxing | Square or portrait images |
+
 ## Upload Process
 
 ### Step 1: Navigate to Upload
@@ -22,7 +43,7 @@ Click **Upload** in the navigation bar or go to `http://localhost:3000/upload`.
 **Drag and Drop**:
 - Drag images from your file manager
 - Drop them onto the upload area
-- Multiple images can be dropped at once
+- Multiple images can be dropped at once (max 10)
 
 **Click to Browse**:
 - Click the upload area
@@ -31,48 +52,79 @@ Click **Upload** in the navigation bar or go to `http://localhost:3000/upload`.
 
 ### Step 3: Configure Processing
 
-For each image (or batch), configure:
-
 **Category**
 - Select which category the images belong to
 - Categories help organize your library
-- Each frame can display specific categories
+- Each frame can filter by category
 
-**Display Types**
-- Select which e-ink displays to generate images for
-- Images are processed for each selected display
-- Different displays have different resolutions and colors
+**Devices**
+- Check the devices to generate images for
+- Each selected device gets an optimized variant
+- Images are sized and dithered for each device's display
 
-**Dithering Algorithm** (optional)
+**Fit Mode**
+- **Smart Fit** (recommended): Automatically rotates the image if needed and chooses between cover/contain to minimize cropping
+- **Fill Frame (Cover)**: Image fills the entire frame; edges may be cropped
+- **Fit Entire Image (Contain)**: Entire image visible; adds letterbox bars if needed
+
+**Dithering Algorithm**
 - Floyd-Steinberg (default): Best for photos
 - Ordered: Better for graphics with sharp edges
 - Atkinson: Good for high-contrast images
 
-### Step 4: Process
+### Step 4: Enhancement Options (Advanced)
+
+Click "Image Enhancement Options" to reveal advanced settings:
+
+**Auto Contrast**
+- Automatically adjusts contrast and levels
+- Recommended for most images
+
+**Saturation Boost**
+- Increases color vibrancy
+- E-ink displays benefit from boosted colors
+- Default: 20% boost
+
+**Noise Reduction**
+- Reduces speckling in gradients
+- Helps with smooth skies and backgrounds
+
+**Sharpening**
+- Restores edge clarity after resizing
+- Compensates for noise reduction softening
+
+**Letterbox Background**
+- Choose the color for letterbox bars
+- Only applies when Fit Entire Image is used
+- White and Black presets available
+
+### Step 5: Process
 
 Click **Process** to start image processing.
 
 **Processing steps**:
-1. Images are resized to display dimensions
-2. Colors are reduced to display palette
-3. Dithering is applied for smooth gradients
-4. Variants are saved for each display type
-5. Thumbnails are generated
-6. Metadata is created
+1. Image is rotated if Smart Fit determines it's beneficial
+2. Image is resized to device dimensions
+3. Enhancement options are applied
+4. Colors are reduced to display palette
+5. Dithering is applied for smooth gradients
+6. Variants are saved for each selected device
+7. Thumbnail is generated
+8. Metadata is created
 
-### Step 5: Review
+### Step 6: Review
 
 After processing:
 - View results in the Gallery
-- Check each display variant
+- Filter by device to see specific variants
 - Verify images look correct
 
 ## Batch Processing
 
 ### Processing Multiple Images
 
-1. Upload multiple images at once
-2. All images will use the same settings
+1. Upload multiple images at once (up to 10)
+2. All images use the same settings
 3. Progress bar shows overall progress
 4. Failed images are reported at the end
 
@@ -99,7 +151,7 @@ After processing:
 **Think About Color**
 - Limited color palettes (2-7 colors typically)
 - Bold, distinct colors work better
-- Subtle gradients become banding
+- Subtle gradients may show banding
 
 ### Image Composition
 
@@ -108,22 +160,10 @@ After processing:
 - Avoid busy backgrounds
 - Large shapes read well on e-ink
 
-**Landscape Orientation**
-- Most e-ink frames are landscape
-- Portrait images will be cropped
-- Consider this when selecting photos
-
-## Reprocessing Images
-
-To reprocess with different settings:
-
-1. Go to **Gallery**
-2. Find the image
-3. Click **Reprocess**
-4. Adjust settings
-5. Click **Process**
-
-The new variants replace the old ones.
+**Orientation Matters**
+- Use Smart Fit to handle mixed orientations
+- Or group by orientation and use appropriate fit modes
+- Portrait images work best with Smart Fit or Contain modes
 
 ## Storage and Git
 
@@ -133,8 +173,8 @@ The new variants replace the old ones.
 public/images/
 └── [category]/
     └── [image-id]/
-        ├── inky_frame_7_spectra.png
-        ├── inky_frame_7_colour.png
+        ├── living-room-frame.png    # Device variant
+        ├── bedroom-frame.png        # Another device
         ├── thumbnail.png
         └── metadata.json
 ```
@@ -183,21 +223,31 @@ For large collections:
 ### Poor Quality Output
 
 **Images look washed out**
-- Increase contrast in source image
+- Enable Auto Contrast
+- Increase saturation boost
 - Try a different dithering algorithm
-- Check display profile settings
 
 **Banding in gradients**
 - Use Floyd-Steinberg dithering
+- Enable noise reduction
 - Source image may need more contrast
 
 **Wrong colors**
-- Verify correct display type is selected
-- Check display palette matches your hardware
+- Verify correct device is selected
+- Check display profile color palette
+- Some colors may not exist in limited palettes
+
+**Unwanted cropping**
+- Use Smart Fit or Fit Entire Image mode
+- Consider image orientation vs frame orientation
+
+**Letterbox bars visible**
+- Expected with Fit Entire Image mode
+- Use Fill Frame mode to avoid bars
+- Or use Smart Fit for automatic decision
 
 ## Next Steps
 
 - [Manage your gallery](./gallery-management.md)
 - [Configure frame rotation](./frame-configuration.md)
-- [Add new categories](../architecture/category-system.md)
-
+- [Create categories](../architecture/category-system.md)

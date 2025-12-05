@@ -10,36 +10,48 @@ Your e-ink frame needs to:
 3. Download and display the images
 4. Optionally rotate images on a schedule
 
+## Setting Up Your Device in InkyStream
+
+Before configuring your frame, create a device in InkyStream:
+
+1. Go to **Devices** page
+2. Click **Add Device**
+3. Enter a memorable name (e.g., "Living Room Frame")
+4. Select the display type matching your hardware
+5. Click **Create Device**
+
+Note the **device ID** shown (it's the URL-friendly version of your name, like `living-room-frame`).
+
 ## API Endpoints
 
-Your frame will use these endpoints:
+Your frame will use device-specific endpoints:
 
 | Endpoint | Description |
 |----------|-------------|
-| `/api/current` | Get current image |
-| `/api/next` | Rotate to next image |
-| `/api/random` | Get random image |
-| `/api/categories` | List categories |
-| `/api/displays` | List display types |
+| `/api/devices/{deviceId}/current` | Get current image |
+| `/api/devices/{deviceId}/next` | Rotate to next image |
+| `/api/devices/{deviceId}/random` | Get random image |
 
 ### Query Parameters
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| `display` | Yes | Display profile ID (e.g., `inky_frame_7_spectra`) |
 | `category` | No | Category ID to filter by |
 
 ### Example Requests
 
 ```bash
-# Get current image for Inky Frame 7
-curl "https://your-domain.vercel.app/api/current?display=inky_frame_7_spectra"
+# Get random image for your device
+curl "https://your-domain.vercel.app/api/devices/living-room-frame/random"
 
-# Get current landscape image
-curl "https://your-domain.vercel.app/api/current?display=inky_frame_7_spectra&category=landscapes"
+# Get random image from landscapes category only
+curl "https://your-domain.vercel.app/api/devices/living-room-frame/random?category=landscapes"
 
-# Rotate to next image
-curl "https://your-domain.vercel.app/api/next?display=inky_frame_7_spectra"
+# Rotate to next image in sequence
+curl "https://your-domain.vercel.app/api/devices/living-room-frame/next"
+
+# Get current image (without rotation)
+curl "https://your-domain.vercel.app/api/devices/living-room-frame/current"
 ```
 
 ### Response Format
@@ -48,10 +60,10 @@ curl "https://your-domain.vercel.app/api/next?display=inky_frame_7_spectra"
 {
   "success": true,
   "data": {
-    "imageUrl": "/images/landscapes/abc123/inky_frame_7_spectra.png",
+    "imageUrl": "/images/landscapes/abc123/living-room-frame.png",
     "imageId": "abc123",
     "categoryId": "landscapes",
-    "displayId": "inky_frame_7_spectra"
+    "deviceId": "living-room-frame"
   }
 }
 ```
@@ -68,14 +80,13 @@ import urequests
 import ujson
 import time
 from picographics import PicoGraphics, DISPLAY_INKY_FRAME_7 as DISPLAY
-from jpegdec import JPEG
 
 # Configuration
 WIFI_SSID = "your-wifi-name"
 WIFI_PASSWORD = "your-wifi-password"
 API_BASE = "https://your-domain.vercel.app"
-DISPLAY_TYPE = "inky_frame_7_spectra"
-CATEGORY = "landscapes"  # Optional
+DEVICE_ID = "living-room-frame"  # Your device ID from InkyStream
+CATEGORY = None  # Set to category ID to filter, or None for all
 REFRESH_HOURS = 6
 
 # Initialize display
@@ -92,10 +103,10 @@ def connect_wifi():
     
     print("Connected:", wlan.ifconfig())
 
-def get_image_url():
-    url = f"{API_BASE}/api/current?display={DISPLAY_TYPE}"
+def get_image_url(endpoint="random"):
+    url = f"{API_BASE}/api/devices/{DEVICE_ID}/{endpoint}"
     if CATEGORY:
-        url += f"&category={CATEGORY}"
+        url += f"?category={CATEGORY}"
     
     response = urequests.get(url)
     data = ujson.loads(response.text)
@@ -115,11 +126,10 @@ def display_image(url):
     response.close()
     
     # Display image
-    # (Implementation depends on your specific frame)
     graphics.set_pen(15)  # White
     graphics.clear()
     
-    # Load and display PNG
+    # Load and display PNG (implementation depends on your setup)
     # ... frame-specific code
     
     graphics.update()
@@ -128,7 +138,7 @@ def main():
     connect_wifi()
     
     while True:
-        url = get_image_url()
+        url = get_image_url("random")
         if url:
             display_image(url)
         
@@ -139,25 +149,25 @@ if __name__ == "__main__":
     main()
 ```
 
-### With Image Rotation
+### With Sequential Rotation
 
 ```python
-def rotate_to_next():
-    url = f"{API_BASE}/api/next?display={DISPLAY_TYPE}"
-    if CATEGORY:
-        url += f"&category={CATEGORY}"
+def main():
+    connect_wifi()
     
-    response = urequests.get(url)
-    data = ujson.loads(response.text)
-    response.close()
+    # First image: get current or random
+    url = get_image_url("random")
+    if url:
+        display_image(url)
     
-    if data["success"]:
-        return API_BASE + data["data"]["imageUrl"]
-    return None
-
-# In main loop:
-# First display: get_image_url()
-# Subsequent: rotate_to_next()
+    while True:
+        # Wait for refresh interval
+        time.sleep(REFRESH_HOURS * 3600)
+        
+        # Get next image in sequence
+        url = get_image_url("next")
+        if url:
+            display_image(url)
 ```
 
 ### Button Controls
@@ -171,13 +181,17 @@ button_b = Button(BUTTON_B)
 while True:
     if button_a.read():
         # Next image
-        url = rotate_to_next()
-        display_image(url)
+        url = get_image_url("next")
+        if url:
+            display_image(url)
     
     if button_b.read():
         # Random image
-        url = f"{API_BASE}/api/random?display={DISPLAY_TYPE}"
-        # ... fetch and display
+        url = get_image_url("random")
+        if url:
+            display_image(url)
+    
+    time.sleep(0.1)  # Debounce
 ```
 
 ## Waveshare E-Paper
@@ -196,7 +210,7 @@ while True:
 const char* ssid = "your-wifi";
 const char* password = "your-password";
 const char* apiBase = "https://your-domain.vercel.app";
-const char* displayType = "waveshare_7_5_bw";
+const char* deviceId = "bedroom-frame";  // Your device ID
 
 // E-Paper display instance
 GxEPD2_BW<GxEPD2_750_T7, GxEPD2_750_T7::HEIGHT> display(
@@ -221,7 +235,7 @@ void setup() {
 
 String getImageUrl() {
     HTTPClient http;
-    String url = String(apiBase) + "/api/current?display=" + displayType;
+    String url = String(apiBase) + "/api/devices/" + deviceId + "/random";
     
     http.begin(url);
     int code = http.GET();
@@ -274,17 +288,17 @@ from inky.auto import auto
 
 # Configuration
 API_BASE = "https://your-domain.vercel.app"
-DISPLAY_TYPE = "inky_impression_7"  # Adjust for your display
+DEVICE_ID = "kitchen-frame"  # Your device ID from InkyStream
 CATEGORY = None  # Or "landscapes", etc.
 REFRESH_HOURS = 6
 
 def get_display():
     return auto()
 
-def get_image_url():
-    url = f"{API_BASE}/api/current?display={DISPLAY_TYPE}"
+def get_image_url(endpoint="random"):
+    url = f"{API_BASE}/api/devices/{DEVICE_ID}/{endpoint}"
     if CATEGORY:
-        url += f"&category={CATEGORY}"
+        url += f"?category={CATEGORY}"
     
     response = requests.get(url)
     data = response.json()
@@ -306,7 +320,7 @@ def main():
     display = get_display()
     
     while True:
-        url = get_image_url()
+        url = get_image_url("random")
         if url:
             display_image(display, url)
         
@@ -348,16 +362,24 @@ sudo systemctl start inkystream
 
 Show images in order, one at a time:
 ```
-API: /api/next
-Result: Shows next image in sequence
+API: /api/devices/{deviceId}/next
+Result: Shows next image in sequence, loops back to start
 ```
 
 ### Random
 
 Show random images:
 ```
-API: /api/random
-Result: Shows random image
+API: /api/devices/{deviceId}/random
+Result: Shows random image from library
+```
+
+### By Category
+
+Filter to specific categories:
+```
+API: /api/devices/{deviceId}/random?category=landscapes
+Result: Random image from landscapes only
 ```
 
 ### Scheduled by Time
@@ -374,6 +396,8 @@ elif 12 <= hour < 18:
     category = "art"  # Afternoon: art
 else:
     category = "family"  # Evening: family
+
+url = f"{API_BASE}/api/devices/{DEVICE_ID}/random?category={category}"
 ```
 
 ## Troubleshooting
@@ -387,25 +411,26 @@ else:
 
 ### Wrong Image Size
 
-1. Verify display profile matches your hardware
-2. Check `config/displays.json` dimensions
-3. Reprocess images if needed
+1. Verify device in InkyStream matches your hardware
+2. Check display profile dimensions
+3. Reprocess images if you changed device settings
 
 ### Image Quality Issues
 
 1. Check original image quality
 2. Try different dithering algorithm
-3. Increase contrast in source
+3. Adjust enhancement settings
+4. Increase contrast in source
 
 ### API Errors
 
 1. Test API directly with curl
 2. Check Vercel deployment status
-3. Verify query parameters
+3. Verify device ID is correct
+4. Check for typos in URL
 
 ## Next Steps
 
 - [API Endpoint Reference](../architecture/api-endpoints.md)
 - [Adding New Displays](../development/adding-displays.md)
 - [Troubleshooting](../setup/troubleshooting.md)
-
