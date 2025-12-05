@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { ImageMetadata } from '@/lib/types/image';
 import type { Category } from '@/lib/types/category';
 import type { Device } from '@/lib/types/device';
-import { Image as ImageIcon, X, Download, Trash2, Eye, Monitor } from 'lucide-react';
+import { Image as ImageIcon, X, Download, Trash2, Eye, Monitor, Calendar, FileImage } from 'lucide-react';
 
 interface ImageGalleryProps {
   images: ImageMetadata[];
@@ -43,7 +43,7 @@ export default function ImageGallery({
       if (data.success) {
         setSelectedImage(null);
         setShowDeleteConfirm(false);
-        router.refresh(); // Refresh the page to update the gallery
+        router.refresh();
       } else {
         alert('Failed to delete image: ' + data.error);
       }
@@ -81,10 +81,13 @@ export default function ImageGallery({
 
   if (images.length === 0) {
     return (
-      <div className="text-center py-16 ink-card">
-        <ImageIcon className="w-16 h-16 mx-auto text-ink-gray/30 mb-4" />
-        <p className="text-xl font-medium text-ink-black mb-2">No images yet</p>
-        <p className="text-ink-gray">
+      <div className="text-center py-20 ink-card">
+        <div className="w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center
+                        bg-gradient-to-br from-[#ff47b3]/20 to-[#a855f7]/20 border border-white/10">
+          <ImageIcon className="w-10 h-10 text-[#ff47b3]/50" />
+        </div>
+        <p className="text-xl font-bold text-white mb-2">No images yet</p>
+        <p className="text-white/50">
           Upload and process images to see them here
         </p>
       </div>
@@ -96,7 +99,6 @@ export default function ImageGallery({
       {/* Image Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {images.map((image) => {
-          // Determine thumbnail: use device-specific variant if filtered, otherwise generic thumbnail
           const deviceVariant = currentDeviceId 
             ? image.variants.find((v) => v.deviceId === currentDeviceId)
             : null;
@@ -107,27 +109,28 @@ export default function ImageGallery({
           return (
             <div
               key={image.id}
-              className="group relative aspect-[4/3] bg-ink-gray/10 rounded-lg overflow-hidden cursor-pointer"
+              className="group relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer
+                         bg-black/20 border border-white/10 hover:border-[#ff47b3]/50 
+                         transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-[#ff47b3]/10"
               onClick={() => setSelectedImage(image)}
             >
               <img
                 src={thumbnailSrc}
                 alt={image.originalFilename}
-                className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="absolute bottom-0 left-0 right-0 p-3">
-                  <p className="text-xs text-white/80 truncate">
+                  <p className="text-xs text-white truncate font-medium">
                     {image.originalFilename}
                   </p>
                 </div>
               </div>
               <div
-                className="absolute top-2 left-2 w-3 h-3 rounded-full"
-                style={{ backgroundColor: getCategoryColor(image.categoryId) }}
+                className="absolute top-2 left-2 w-3 h-3 rounded-full shadow-lg"
+                style={{ backgroundColor: getCategoryColor(image.categoryId), boxShadow: `0 0 10px ${getCategoryColor(image.categoryId)}` }}
               />
-              {/* Device count badge */}
-              <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 bg-black/60 rounded text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-lg text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity">
                 <Monitor className="w-3 h-3" />
                 {image.variants.length}
               </div>
@@ -136,89 +139,103 @@ export default function ImageGallery({
         })}
       </div>
 
-      {/* Image Detail Modal */}
+      {/* Full Screen Image Detail Modal */}
       {selectedImage && (
         <div
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-8"
           onClick={() => setSelectedImage(null)}
         >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-md" />
+          
+          {/* Modal Content */}
           <div
-            className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto"
+            className="relative w-full max-w-5xl max-h-[90vh] overflow-auto rounded-2xl
+                       bg-gradient-to-b from-[#531153] to-[#3d0d3d] border border-white/20
+                       shadow-2xl shadow-[#ff47b3]/20"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-ink-gray/20">
+            <div className="sticky top-0 z-10 flex items-center justify-between p-5 
+                            bg-gradient-to-b from-[#531153] to-transparent backdrop-blur-sm border-b border-white/10">
               <div>
-                <h3 className="font-semibold text-ink-black">
+                <h3 className="text-xl font-bold text-white">
                   {selectedImage.originalFilename}
                 </h3>
-                <p className="text-sm text-ink-gray">
-                  {getCategoryName(selectedImage.categoryId)} •{' '}
-                  {formatDate(selectedImage.processedAt)}
-                </p>
+                <div className="flex items-center gap-3 mt-1 text-sm text-white/60">
+                  <span className="flex items-center gap-1">
+                    <div 
+                      className="w-2 h-2 rounded-full" 
+                      style={{ backgroundColor: getCategoryColor(selectedImage.categoryId) }}
+                    />
+                    {getCategoryName(selectedImage.categoryId)}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {formatDate(selectedImage.processedAt)}
+                  </span>
+                </div>
               </div>
               <button
                 onClick={() => setSelectedImage(null)}
-                className="p-2 hover:bg-ink-gray/10 rounded-md"
+                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5 text-white" />
               </button>
             </div>
 
             {/* Image Preview */}
-            <div className="p-4 bg-ink-gray/5">
+            <div className="p-6 flex justify-center bg-black/20">
               <img
                 src={`/images/${selectedImage.categoryId}/${selectedImage.id}/thumbnail.png`}
                 alt={selectedImage.originalFilename}
-                className="max-w-full max-h-64 mx-auto rounded-lg"
+                className="max-w-full max-h-80 rounded-xl shadow-2xl"
               />
             </div>
 
             {/* Device Variants */}
-            <div className="p-4">
-              <h4 className="font-medium text-ink-black mb-3">
-                Device Variants ({selectedImage.variants.length})
-              </h4>
-              <div className="space-y-2">
+            <div className="p-6 border-t border-white/10">
+              <div className="flex items-center gap-2 mb-4">
+                <Monitor className="w-5 h-5 text-[#ff47b3]" />
+                <h4 className="font-bold text-white">Device Variants ({selectedImage.variants.length})</h4>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {selectedImage.variants.map((variant) => (
                   <div
                     key={variant.deviceId}
-                    className={`flex items-center justify-between p-3 rounded-lg ${
+                    className={`flex items-center justify-between p-4 rounded-xl transition-all duration-200 ${
                       currentDeviceId === variant.deviceId
-                        ? 'bg-ink-black/10 border border-ink-black/20'
-                        : 'bg-ink-gray/5'
+                        ? 'bg-[#ff47b3]/20 border border-[#ff47b3]/40'
+                        : 'bg-black/20 border border-white/10 hover:border-white/20'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-ink-black rounded flex items-center justify-center">
-                        <Monitor className="w-4 h-4 text-white" />
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center
+                                      bg-gradient-to-br from-[#ff47b3] to-[#a855f7]">
+                        <Monitor className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <p className="font-medium text-ink-black">
-                          {getDeviceName(variant.deviceId)}
-                        </p>
-                        <p className="text-xs text-ink-gray">
-                          {variant.width}×{variant.height}
-                        </p>
+                        <p className="font-semibold text-white">{getDeviceName(variant.deviceId)}</p>
+                        <p className="text-xs text-white/50">{variant.width}×{variant.height}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <a
                         href={`/images/${selectedImage.categoryId}/${selectedImage.id}/${variant.filename}`}
                         download={`${selectedImage.originalFilename.replace(/\.[^.]+$/, '')}-${variant.deviceId}.png`}
-                        className="p-2 hover:bg-ink-gray/10 rounded-md"
+                        className="p-2 rounded-lg bg-white/10 hover:bg-[#22d3ee]/20 hover:text-[#22d3ee] text-white/70 transition-colors"
                         title="Download"
                       >
-                        <Download className="w-4 h-4 text-ink-gray" />
+                        <Download className="w-4 h-4" />
                       </a>
                       <a
                         href={`/images/${selectedImage.categoryId}/${selectedImage.id}/${variant.filename}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 hover:bg-ink-gray/10 rounded-md"
+                        className="p-2 rounded-lg bg-white/10 hover:bg-[#a855f7]/20 hover:text-[#a855f7] text-white/70 transition-colors"
                         title="View Full Size"
                       >
-                        <Eye className="w-4 h-4 text-ink-gray" />
+                        <Eye className="w-4 h-4" />
                       </a>
                     </div>
                   </div>
@@ -227,43 +244,43 @@ export default function ImageGallery({
             </div>
 
             {/* Metadata */}
-            <div className="p-4 border-t border-ink-gray/20">
-              <h4 className="font-medium text-ink-black mb-3">Metadata</h4>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-ink-gray">Image ID</p>
-                  <p className="text-ink-black font-mono text-xs">
-                    {selectedImage.id}
-                  </p>
+            <div className="p-6 border-t border-white/10">
+              <div className="flex items-center gap-2 mb-4">
+                <FileImage className="w-5 h-5 text-[#22d3ee]" />
+                <h4 className="font-bold text-white">Metadata</h4>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="p-3 rounded-xl bg-black/20 border border-white/10">
+                  <p className="text-xs text-white/50 mb-1">Image ID</p>
+                  <p className="text-white font-mono text-xs truncate">{selectedImage.id}</p>
                 </div>
-                <div>
-                  <p className="text-ink-gray">Category</p>
-                  <p className="text-ink-black">
-                    {getCategoryName(selectedImage.categoryId)}
-                  </p>
+                <div className="p-3 rounded-xl bg-black/20 border border-white/10">
+                  <p className="text-xs text-white/50 mb-1">Category</p>
+                  <p className="text-white text-sm">{getCategoryName(selectedImage.categoryId)}</p>
                 </div>
-                <div>
-                  <p className="text-ink-gray">Original Filename</p>
-                  <p className="text-ink-black">{selectedImage.originalFilename}</p>
+                <div className="p-3 rounded-xl bg-black/20 border border-white/10">
+                  <p className="text-xs text-white/50 mb-1">Original File</p>
+                  <p className="text-white text-sm truncate">{selectedImage.originalFilename}</p>
                 </div>
-                <div>
-                  <p className="text-ink-gray">Processed</p>
-                  <p className="text-ink-black">
-                    {formatDate(selectedImage.processedAt)}
-                  </p>
+                <div className="p-3 rounded-xl bg-black/20 border border-white/10">
+                  <p className="text-xs text-white/50 mb-1">Processed</p>
+                  <p className="text-white text-sm">{formatDate(selectedImage.processedAt)}</p>
                 </div>
               </div>
             </div>
 
             {/* Actions */}
-            <div className="flex justify-between gap-2 p-4 border-t border-ink-gray/20">
+            <div className="sticky bottom-0 flex justify-between gap-3 p-5 
+                            bg-gradient-to-t from-[#3d0d3d] to-transparent backdrop-blur-sm border-t border-white/10">
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold
+                           bg-red-500/20 text-red-400 border border-red-500/30
+                           hover:bg-red-500/30 transition-colors"
                 disabled={isDeleting}
               >
                 <Trash2 className="w-4 h-4" />
-                Delete
+                Delete Image
               </button>
               <button
                 onClick={() => setSelectedImage(null)}
@@ -279,24 +296,34 @@ export default function ImageGallery({
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && selectedImage && (
         <div
-          className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
           onClick={() => setShowDeleteConfirm(false)}
         >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-md" />
+          
+          {/* Modal Content */}
           <div
-            className="bg-white rounded-lg max-w-md w-full p-6"
+            className="relative w-full max-w-md p-6 rounded-2xl
+                       bg-gradient-to-b from-[#531153] to-[#3d0d3d] border border-white/20
+                       shadow-2xl shadow-red-500/20"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-semibold text-ink-black mb-2">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center
+                            bg-red-500/20 border border-red-500/30">
+              <Trash2 className="w-8 h-8 text-red-400" />
+            </div>
+            <h3 className="text-xl font-bold text-white text-center mb-2">
               Delete Image?
             </h3>
-            <p className="text-ink-gray mb-4">
-              Are you sure you want to delete "{selectedImage.originalFilename}"?
+            <p className="text-white/60 text-center mb-6">
+              Are you sure you want to delete <span className="text-white font-medium">"{selectedImage.originalFilename}"</span>?
               This action cannot be undone.
             </p>
-            <div className="flex justify-end gap-2">
+            <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="ink-button-secondary"
+                className="flex-1 ink-button-secondary"
                 disabled={isDeleting}
               >
                 Cancel
@@ -304,7 +331,9 @@ export default function ImageGallery({
               <button
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="px-4 py-2 bg-red-600 text-white rounded-md font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 rounded-xl font-semibold
+                           bg-red-500 text-white hover:bg-red-600 transition-colors
+                           disabled:opacity-50"
               >
                 {isDeleting ? 'Deleting...' : 'Delete'}
               </button>

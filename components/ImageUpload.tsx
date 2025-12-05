@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, FileImage } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 interface ImageUploadProps {
@@ -60,28 +60,38 @@ export default function ImageUpload({
       <div
         {...getRootProps()}
         className={cn(
-          'dropzone cursor-pointer',
-          isDragActive && 'dropzone-active border-ink-black'
+          'relative cursor-pointer rounded-xl border-2 border-dashed transition-all duration-300',
+          isDragActive 
+            ? 'border-[#ff47b3] bg-[#ff47b3]/10 scale-[1.02]' 
+            : 'border-white/30 hover:border-white/50 hover:bg-white/5'
         )}
       >
         <input {...getInputProps()} />
-        <div className="flex flex-col items-center gap-4 py-8">
-          <div className="p-4 bg-ink-gray/10 rounded-full">
-            <Upload className="w-8 h-8 text-ink-gray" />
+        <div className="flex flex-col items-center gap-4 py-10 px-4">
+          <div className={cn(
+            'p-4 rounded-2xl transition-all duration-300',
+            isDragActive 
+              ? 'bg-gradient-to-br from-[#ff47b3] to-[#a855f7] shadow-lg shadow-[#ff47b3]/30' 
+              : 'bg-white/10'
+          )}>
+            <Upload className={cn(
+              'w-8 h-8 transition-colors',
+              isDragActive ? 'text-white' : 'text-white/50'
+            )} />
           </div>
           {isDragActive ? (
-            <p className="text-ink-black font-medium">Drop images here...</p>
+            <p className="text-lg font-bold text-[#ff47b3]">Drop images here...</p>
           ) : (
             <>
-              <p className="text-ink-black font-medium">
+              <p className="text-white font-semibold">
                 Drag and drop images here
               </p>
-              <p className="text-sm text-ink-gray">
+              <p className="text-sm text-white/50">
                 or click to select files
               </p>
             </>
           )}
-          <p className="text-xs text-ink-gray">
+          <p className="text-xs text-white/30">
             Supports JPEG, PNG, WebP • Max {maxFiles} files
           </p>
         </div>
@@ -89,42 +99,53 @@ export default function ImageUpload({
 
       {/* Preview Grid */}
       {previews.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-ink-black">
-              Selected Images ({previews.length})
-            </p>
+            <div className="flex items-center gap-2">
+              <FileImage className="w-4 h-4 text-[#ff47b3]" />
+              <p className="text-sm font-semibold text-white">
+                Selected Images ({previews.length})
+              </p>
+            </div>
             <button
               onClick={() => {
                 previews.forEach((p) => URL.revokeObjectURL(p.preview));
                 setPreviews([]);
                 onFilesSelected([]);
               }}
-              className="text-sm text-ink-gray hover:text-ink-black"
+              className="text-sm text-white/50 hover:text-[#ff47b3] transition-colors"
             >
               Clear all
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {previews.map((preview, index) => (
               <div
                 key={preview.preview}
-                className="relative aspect-square bg-ink-gray/10 rounded-lg overflow-hidden group"
+                className="relative aspect-square rounded-xl overflow-hidden group
+                           border border-white/10 hover:border-[#ff47b3]/50 transition-all duration-300
+                           hover:scale-[1.02] hover:shadow-lg hover:shadow-[#ff47b3]/10"
               >
                 <img
                   src={preview.preview}
                   alt={preview.file.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
                 <button
-                  onClick={() => removeFile(index)}
-                  className="absolute top-2 right-2 p-1 bg-ink-black/70 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeFile(index);
+                  }}
+                  className="absolute top-2 right-2 p-1.5 bg-black/70 backdrop-blur-sm rounded-lg text-white 
+                             opacity-0 group-hover:opacity-100 transition-all duration-200
+                             hover:bg-red-500 hover:scale-110"
                 >
                   <X className="w-4 h-4" />
                 </button>
-                <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent">
-                  <p className="text-xs text-white truncate">
+                <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent
+                                opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <p className="text-xs text-white truncate font-medium">
                     {preview.file.name}
                   </p>
                 </div>
@@ -136,4 +157,3 @@ export default function ImageUpload({
     </div>
   );
 }
-

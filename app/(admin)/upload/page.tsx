@@ -7,7 +7,7 @@ import ProcessingForm, { type ProcessingOptions } from '@/components/ProcessingF
 import type { Category } from '@/lib/types/category';
 import type { Device } from '@/lib/types/device';
 import type { DisplayProfile } from '@/lib/types/display';
-import { CheckCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle, AlertCircle, Upload, Sparkles, Lightbulb } from 'lucide-react';
 
 /**
  * Upload page - upload and process images for e-ink displays
@@ -102,8 +102,13 @@ export default function UploadPage() {
     <div className="space-y-8">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-ink-black">Upload Images</h1>
-        <p className="text-ink-gray mt-1">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-[#ff47b3] to-[#a855f7] glow-pink">
+            <Upload className="w-6 h-6 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-white">Upload Images</h1>
+        </div>
+        <p className="text-white/60">
           Upload and process images for your e-ink devices
         </p>
       </div>
@@ -111,28 +116,28 @@ export default function UploadPage() {
       {/* Results Message */}
       {results && (
         <div
-          className={`p-4 rounded-lg border ${
+          className={`p-5 rounded-2xl border backdrop-blur-sm ${
             results.failed === 0
-              ? 'bg-green-50 border-green-200'
+              ? 'bg-green-500/20 border-green-500/30'
               : results.success === 0
-              ? 'bg-red-50 border-red-200'
-              : 'bg-yellow-50 border-yellow-200'
+              ? 'bg-red-500/20 border-red-500/30'
+              : 'bg-yellow-500/20 border-yellow-500/30'
           }`}
         >
           <div className="flex items-start gap-3">
             {results.failed === 0 ? (
-              <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+              <CheckCircle className="w-6 h-6 text-green-400 mt-0.5" />
             ) : (
-              <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+              <AlertCircle className="w-6 h-6 text-red-400 mt-0.5" />
             )}
             <div>
-              <p className="font-medium">
+              <p className="font-semibold text-white">
                 {results.success > 0 && `${results.success} image(s) processed successfully`}
                 {results.success > 0 && results.failed > 0 && ', '}
                 {results.failed > 0 && `${results.failed} failed`}
               </p>
               {results.errors.length > 0 && (
-                <ul className="text-sm mt-1 text-ink-gray">
+                <ul className="text-sm mt-2 text-white/70">
                   {results.errors.map((error, i) => (
                     <li key={i}>• {error}</li>
                   ))}
@@ -141,7 +146,7 @@ export default function UploadPage() {
               {results.success > 0 && (
                 <button
                   onClick={() => router.push('/gallery')}
-                  className="text-sm text-ink-black hover:underline mt-2"
+                  className="text-sm text-[#ff47b3] hover:text-[#22d3ee] font-medium mt-3 transition-colors"
                 >
                   View in Gallery →
                 </button>
@@ -151,12 +156,13 @@ export default function UploadPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Upload Section */}
         <div className="ink-card p-6">
-          <h2 className="text-xl font-semibold text-ink-black mb-4">
-            Select Images
-          </h2>
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-[#ff47b3]" />
+            <h2 className="text-xl font-bold text-white">Select Images</h2>
+          </div>
           <ImageUpload
             onFilesSelected={setFiles}
             maxFiles={10}
@@ -165,9 +171,10 @@ export default function UploadPage() {
 
         {/* Processing Options */}
         <div className="ink-card p-6">
-          <h2 className="text-xl font-semibold text-ink-black mb-4">
-            Processing Options
-          </h2>
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-[#a855f7]" />
+            <h2 className="text-xl font-bold text-white">Processing Options</h2>
+          </div>
           <ProcessingForm
             categories={categories}
             devices={devices}
@@ -180,13 +187,28 @@ export default function UploadPage() {
       </div>
 
       {/* Help Section */}
-      <div className="ink-card p-6 bg-ink-gray/5">
-        <h3 className="font-semibold text-ink-black mb-2">Tips for Best Results</h3>
-        <ul className="text-sm text-ink-gray space-y-1">
-          <li>• Use high-quality source images for better output</li>
-          <li>• High-contrast images work best on e-ink displays</li>
-          <li>• Floyd-Steinberg dithering is recommended for photos</li>
-          <li>• Ordered dithering works well for graphics with sharp edges</li>
+      <div className="ink-card p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Lightbulb className="w-5 h-5 text-[#fbbf24]" />
+          <h3 className="font-bold text-white">Tips for Best Results</h3>
+        </div>
+        <ul className="text-sm text-white/60 space-y-2">
+          <li className="flex items-start gap-2">
+            <span className="text-[#ff47b3]">•</span>
+            Use high-quality source images for better output
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-[#a855f7]">•</span>
+            High-contrast images work best on e-ink displays
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-[#22d3ee]">•</span>
+            Floyd-Steinberg dithering is recommended for photos
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-[#fbbf24]">•</span>
+            Ordered dithering works well for graphics with sharp edges
+          </li>
         </ul>
       </div>
     </div>

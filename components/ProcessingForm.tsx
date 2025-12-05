@@ -12,7 +12,7 @@ import {
   type DitheringAlgorithm,
   type EnhancementOptions,
 } from '@/lib/processors/dither-types';
-import { Monitor, Plus } from 'lucide-react';
+import { Monitor, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ProcessingFormProps {
   categories: Category[];
@@ -94,7 +94,7 @@ export default function ProcessingForm({
             </option>
           ))}
         </select>
-        <p className="text-xs text-ink-gray mt-1">
+        <p className="text-xs text-white/40 mt-1.5">
           Images will be organized into this category
         </p>
       </div>
@@ -102,17 +102,20 @@ export default function ProcessingForm({
       {/* Device Selection */}
       <div>
         <label className="ink-label">Devices</label>
-        <p className="text-xs text-ink-gray mb-3">
+        <p className="text-xs text-white/40 mb-3">
           Select which devices to create images for
         </p>
         
         {devices.length === 0 ? (
-          <div className="p-4 bg-ink-gray/5 rounded-lg border border-ink-gray/20 text-center">
-            <Monitor className="w-8 h-8 mx-auto text-ink-gray/30 mb-2" />
-            <p className="text-sm text-ink-gray mb-3">No devices configured yet</p>
+          <div className="p-4 rounded-xl bg-black/20 border border-white/10 text-center">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-xl flex items-center justify-center
+                            bg-gradient-to-br from-[#ff47b3]/20 to-[#a855f7]/20">
+              <Monitor className="w-6 h-6 text-[#ff47b3]/50" />
+            </div>
+            <p className="text-sm text-white/50 mb-3">No devices configured yet</p>
             <Link
               href="/devices"
-              className="inline-flex items-center gap-2 text-sm text-ink-black hover:underline"
+              className="inline-flex items-center gap-2 text-sm text-[#ff47b3] hover:text-[#22d3ee] font-medium transition-colors"
             >
               <Plus className="w-4 h-4" />
               Add a device
@@ -122,30 +125,35 @@ export default function ProcessingForm({
           <div className="space-y-2">
             {devices.map((device) => {
               const display = getDisplayForDevice(device.displayId);
+              const isSelected = selectedDevices.includes(device.id);
               return (
                 <label
                   key={device.id}
-                  className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                    selectedDevices.includes(device.id)
-                      ? 'border-ink-black bg-ink-black/5'
-                      : 'border-ink-gray/20 hover:bg-ink-gray/5'
+                  className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 ${
+                    isSelected
+                      ? 'bg-[#ff47b3]/20 border border-[#ff47b3]/40'
+                      : 'bg-black/20 border border-white/10 hover:border-white/20'
                   }`}
                 >
                   <input
                     type="checkbox"
-                    checked={selectedDevices.includes(device.id)}
+                    checked={isSelected}
                     onChange={() => handleDeviceToggle(device.id)}
                     disabled={isProcessing}
-                    className="mt-1"
+                    className="mt-1 accent-[#ff47b3]"
                   />
                   <div className="flex items-center gap-3 flex-1">
-                    <div className="w-8 h-8 bg-ink-black rounded flex items-center justify-center flex-shrink-0">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                      isSelected 
+                        ? 'bg-gradient-to-br from-[#ff47b3] to-[#a855f7]' 
+                        : 'bg-white/10'
+                    }`}>
                       <Monitor className="w-4 h-4 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-ink-black">{device.name}</p>
+                      <p className="font-medium text-white">{device.name}</p>
                       {display && (
-                        <p className="text-xs text-ink-gray">
+                        <p className="text-xs text-white/50">
                           {display.name} • {display.width}×{display.height} • {display.palette.length} colors
                         </p>
                       )}
@@ -161,34 +169,37 @@ export default function ProcessingForm({
       {/* Image Fit Mode */}
       <div>
         <label className="ink-label">Image Fit Mode</label>
-        <p className="text-xs text-ink-gray mb-3">
+        <p className="text-xs text-white/40 mb-3">
           How should the image fit into the frame?
         </p>
         <div className="space-y-2">
-          {FIT_MODE_OPTIONS.map((option) => (
-            <label
-              key={option.value}
-              className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                enhancement.fitMode === option.value
-                  ? 'border-ink-black bg-ink-black/5'
-                  : 'border-ink-gray/20 hover:bg-ink-gray/5'
-              }`}
-            >
-              <input
-                type="radio"
-                name="fitMode"
-                value={option.value}
-                checked={enhancement.fitMode === option.value}
-                onChange={() => setEnhancement({ ...enhancement, fitMode: option.value })}
-                disabled={isProcessing}
-                className="mt-1"
-              />
-              <div className="flex-1">
-                <p className="font-medium text-ink-black">{option.label}</p>
-                <p className="text-xs text-ink-gray">{option.description}</p>
-              </div>
-            </label>
-          ))}
+          {FIT_MODE_OPTIONS.map((option) => {
+            const isSelected = enhancement.fitMode === option.value;
+            return (
+              <label
+                key={option.value}
+                className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 ${
+                  isSelected
+                    ? 'bg-[#a855f7]/20 border border-[#a855f7]/40'
+                    : 'bg-black/20 border border-white/10 hover:border-white/20'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="fitMode"
+                  value={option.value}
+                  checked={isSelected}
+                  onChange={() => setEnhancement({ ...enhancement, fitMode: option.value })}
+                  disabled={isProcessing}
+                  className="mt-1 accent-[#a855f7]"
+                />
+                <div className="flex-1">
+                  <p className="font-medium text-white">{option.label}</p>
+                  <p className="text-xs text-white/50">{option.description}</p>
+                </div>
+              </label>
+            );
+          })}
         </div>
       </div>
 
@@ -210,7 +221,7 @@ export default function ProcessingForm({
             </option>
           ))}
         </select>
-        <p className="text-xs text-ink-gray mt-1">
+        <p className="text-xs text-white/40 mt-1.5">
           Floyd-Steinberg works best for most photos
         </p>
       </div>
@@ -220,14 +231,14 @@ export default function ProcessingForm({
         <button
           type="button"
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="text-sm text-ink-gray hover:text-ink-black flex items-center gap-1"
+          className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors"
         >
-          <span>{showAdvanced ? '▼' : '▶'}</span>
+          {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           Image Enhancement Options
         </button>
         
         {showAdvanced && (
-          <div className="mt-3 p-4 bg-ink-gray/5 rounded-lg space-y-4">
+          <div className="mt-3 p-4 rounded-xl bg-black/20 border border-white/10 space-y-4">
             {/* Auto Contrast */}
             <label className="flex items-center gap-3 cursor-pointer">
               <input
@@ -235,19 +246,19 @@ export default function ProcessingForm({
                 checked={enhancement.autoContrast}
                 onChange={(e) => setEnhancement({ ...enhancement, autoContrast: e.target.checked })}
                 disabled={isProcessing}
-                className="w-4 h-4"
+                className="w-4 h-4 accent-[#ff47b3]"
               />
               <div>
-                <p className="font-medium text-ink-black text-sm">Auto Contrast</p>
-                <p className="text-xs text-ink-gray">Automatically adjust contrast and levels</p>
+                <p className="font-medium text-white text-sm">Auto Contrast</p>
+                <p className="text-xs text-white/40">Automatically adjust contrast and levels</p>
               </div>
             </label>
 
             {/* Saturation */}
             <div>
-              <label className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-ink-black">Saturation Boost</span>
-                <span className="text-xs text-ink-gray">{Math.round((enhancement.saturation - 1) * 100)}%</span>
+              <label className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-white">Saturation Boost</span>
+                <span className="text-xs text-white/50">{Math.round((enhancement.saturation - 1) * 100)}%</span>
               </label>
               <input
                 type="range"
@@ -257,9 +268,9 @@ export default function ProcessingForm({
                 value={enhancement.saturation}
                 onChange={(e) => setEnhancement({ ...enhancement, saturation: parseFloat(e.target.value) })}
                 disabled={isProcessing}
-                className="w-full"
+                className="w-full accent-[#ff47b3]"
               />
-              <p className="text-xs text-ink-gray mt-1">Boost colors for better e-ink display</p>
+              <p className="text-xs text-white/40 mt-1">Boost colors for better e-ink display</p>
             </div>
 
             {/* Denoise */}
@@ -269,11 +280,11 @@ export default function ProcessingForm({
                 checked={enhancement.denoise}
                 onChange={(e) => setEnhancement({ ...enhancement, denoise: e.target.checked })}
                 disabled={isProcessing}
-                className="w-4 h-4"
+                className="w-4 h-4 accent-[#ff47b3]"
               />
               <div>
-                <p className="font-medium text-ink-black text-sm">Noise Reduction</p>
-                <p className="text-xs text-ink-gray">Reduces speckling in gradients</p>
+                <p className="font-medium text-white text-sm">Noise Reduction</p>
+                <p className="text-xs text-white/40">Reduces speckling in gradients</p>
               </div>
             </label>
 
@@ -284,11 +295,11 @@ export default function ProcessingForm({
                 checked={enhancement.sharpen}
                 onChange={(e) => setEnhancement({ ...enhancement, sharpen: e.target.checked })}
                 disabled={isProcessing}
-                className="w-4 h-4"
+                className="w-4 h-4 accent-[#ff47b3]"
               />
               <div>
-                <p className="font-medium text-ink-black text-sm">Sharpen</p>
-                <p className="text-xs text-ink-gray">Restore edge clarity after noise reduction</p>
+                <p className="font-medium text-white text-sm">Sharpen</p>
+                <p className="text-xs text-white/40">Restore edge clarity after noise reduction</p>
               </div>
             </label>
 
@@ -296,8 +307,8 @@ export default function ProcessingForm({
             <div>
               <label className="flex items-center justify-between mb-2">
                 <div>
-                  <p className="text-sm font-medium text-ink-black">Letterbox Background</p>
-                  <p className="text-xs text-ink-gray">Color for bars in contain/smart mode</p>
+                  <p className="text-sm font-medium text-white">Letterbox Background</p>
+                  <p className="text-xs text-white/40">Color for bars in contain/smart mode</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <input
@@ -305,23 +316,23 @@ export default function ProcessingForm({
                     value={enhancement.backgroundColor}
                     onChange={(e) => setEnhancement({ ...enhancement, backgroundColor: e.target.value })}
                     disabled={isProcessing}
-                    className="w-8 h-8 rounded cursor-pointer border border-ink-gray/20"
+                    className="w-8 h-8 rounded-lg cursor-pointer border border-white/20 bg-transparent"
                   />
-                  <span className="text-xs font-mono text-ink-gray">{enhancement.backgroundColor}</span>
+                  <span className="text-xs font-mono text-white/50">{enhancement.backgroundColor}</span>
                 </div>
               </label>
               <div className="flex gap-2 mt-2">
                 <button
                   type="button"
                   onClick={() => setEnhancement({ ...enhancement, backgroundColor: '#FFFFFF' })}
-                  className="text-xs px-2 py-1 bg-white border border-ink-gray/20 rounded hover:bg-ink-gray/5"
+                  className="text-xs px-3 py-1.5 bg-white text-black rounded-lg hover:bg-white/90 transition-colors"
                 >
                   White
                 </button>
                 <button
                   type="button"
                   onClick={() => setEnhancement({ ...enhancement, backgroundColor: '#000000' })}
-                  className="text-xs px-2 py-1 bg-ink-black text-white rounded hover:bg-ink-gray"
+                  className="text-xs px-3 py-1.5 bg-black text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors"
                 >
                   Black
                 </button>
@@ -332,7 +343,7 @@ export default function ProcessingForm({
             <button
               type="button"
               onClick={() => setEnhancement(DEFAULT_ENHANCEMENT_OPTIONS)}
-              className="text-xs text-ink-gray hover:text-ink-black"
+              className="text-xs text-[#ff47b3] hover:text-[#22d3ee] transition-colors"
             >
               Reset to recommended settings
             </button>
@@ -344,7 +355,7 @@ export default function ProcessingForm({
       <button
         type="submit"
         disabled={!isValid || isProcessing}
-        className="w-full ink-button disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full ink-button disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
       >
         {isProcessing ? (
           <span className="flex items-center justify-center gap-2">
@@ -376,14 +387,14 @@ export default function ProcessingForm({
       </button>
 
       {!hasFiles && (
-        <p className="text-sm text-ink-gray text-center">
+        <p className="text-sm text-white/40 text-center">
           Upload images above to enable processing
         </p>
       )}
 
       {hasFiles && devices.length === 0 && (
-        <p className="text-sm text-ink-gray text-center">
-          <Link href="/devices" className="text-ink-black hover:underline">
+        <p className="text-sm text-white/40 text-center">
+          <Link href="/devices" className="text-[#ff47b3] hover:text-[#22d3ee] transition-colors">
             Add a device
           </Link>{' '}
           to start processing images

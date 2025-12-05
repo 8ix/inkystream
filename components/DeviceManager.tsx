@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Device } from '@/lib/types/device';
 import type { DisplayProfile } from '@/lib/types/display';
-import { Monitor, Plus, Pencil, Trash2, X, Check, Wifi } from 'lucide-react';
+import { Monitor, Plus, Pencil, Trash2, X, Check, Wifi, Sparkles } from 'lucide-react';
 
 interface DeviceManagerProps {
   devices: Device[];
@@ -142,7 +142,7 @@ export default function DeviceManager({ devices, displays }: DeviceManagerProps)
     <div className="space-y-6">
       {/* Error Display */}
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+        <div className="p-4 rounded-xl bg-red-500/20 border border-red-500/30 text-red-300 text-sm">
           {error}
         </div>
       )}
@@ -150,7 +150,10 @@ export default function DeviceManager({ devices, displays }: DeviceManagerProps)
       {/* Device List Card */}
       <div className="ink-card p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-ink-black">Your Devices</h2>
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-[#ff47b3]" />
+            <h2 className="text-xl font-bold text-white">Your Devices</h2>
+          </div>
           {!isCreating && (
             <button
               onClick={() => {
@@ -168,8 +171,8 @@ export default function DeviceManager({ devices, displays }: DeviceManagerProps)
 
         {/* Create New Device Form */}
         {isCreating && (
-          <form onSubmit={handleCreate} className="mb-6 p-5 bg-ink-gray/5 rounded-lg border border-ink-gray/20">
-            <h3 className="font-medium text-ink-black mb-4">New Device</h3>
+          <form onSubmit={handleCreate} className="mb-6 p-5 rounded-xl bg-black/20 border border-white/10">
+            <h3 className="font-bold text-white mb-4">New Device</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label htmlFor="newName" className="ink-label">
@@ -234,11 +237,12 @@ export default function DeviceManager({ devices, displays }: DeviceManagerProps)
         {/* Empty State */}
         {devices.length === 0 ? (
           <div className="text-center py-12 px-4">
-            <div className="w-16 h-16 mx-auto mb-4 bg-ink-gray/10 rounded-full flex items-center justify-center">
-              <Monitor className="w-8 h-8 text-ink-gray/50" />
+            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center
+                            bg-gradient-to-br from-[#ff47b3]/20 to-[#a855f7]/20 border border-white/10">
+              <Monitor className="w-10 h-10 text-[#ff47b3]/50" />
             </div>
-            <p className="text-xl font-medium text-ink-black mb-2">No devices yet</p>
-            <p className="text-ink-gray mb-6 max-w-sm mx-auto">
+            <p className="text-xl font-bold text-white mb-2">No devices yet</p>
+            <p className="text-white/50 mb-6 max-w-sm mx-auto">
               Create a device to start uploading images for your e-ink frames.
             </p>
             {!isCreating && (
@@ -257,10 +261,10 @@ export default function DeviceManager({ devices, displays }: DeviceManagerProps)
             {devices.map((device) => (
               <div
                 key={device.id}
-                className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                className={`flex items-center justify-between p-4 rounded-xl transition-all duration-200 ${
                   editingId === device.id
-                    ? 'border-ink-black/30 bg-ink-gray/5'
-                    : 'border-ink-gray/20 hover:border-ink-gray/40'
+                    ? 'bg-[#ff47b3]/10 border border-[#ff47b3]/30'
+                    : 'bg-black/20 border border-white/10 hover:border-white/20'
                 }`}
               >
                 {editingId === device.id ? (
@@ -289,7 +293,7 @@ export default function DeviceManager({ devices, displays }: DeviceManagerProps)
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleSaveEdit(device.id)}
-                        className="p-2 text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                        className="p-2 rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30 transition-colors"
                         disabled={isLoading || !editName.trim()}
                         title="Save"
                       >
@@ -297,7 +301,7 @@ export default function DeviceManager({ devices, displays }: DeviceManagerProps)
                       </button>
                       <button
                         onClick={handleCancelEdit}
-                        className="p-2 text-ink-gray hover:bg-ink-gray/10 rounded-md transition-colors"
+                        className="p-2 rounded-lg bg-white/10 text-white/70 hover:bg-white/20 transition-colors"
                         disabled={isLoading}
                         title="Cancel"
                       >
@@ -309,25 +313,22 @@ export default function DeviceManager({ devices, displays }: DeviceManagerProps)
                   /* Display Mode */
                   <>
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-ink-black to-ink-gray rounded-lg flex items-center justify-center shadow-sm">
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center
+                                      bg-gradient-to-br from-[#ff47b3] to-[#a855f7] shadow-lg shadow-[#ff47b3]/20">
                         <Monitor className="w-6 h-6 text-white" />
                       </div>
                       <div>
-                        <p className="font-semibold text-ink-black">{device.name}</p>
-                        <p className="text-sm text-ink-gray">
-                          {getDisplayName(device.displayId)}
-                        </p>
+                        <p className="font-semibold text-white">{device.name}</p>
+                        <p className="text-sm text-white/50">{getDisplayName(device.displayId)}</p>
                         {getDisplayInfo(device.displayId) && (
-                          <p className="text-xs text-ink-gray/70 mt-0.5">
-                            {getDisplayInfo(device.displayId)}
-                          </p>
+                          <p className="text-xs text-white/30 mt-0.5">{getDisplayInfo(device.displayId)}</p>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => handleStartEdit(device)}
-                        className="p-2.5 text-ink-gray hover:text-ink-black hover:bg-ink-gray/10 rounded-md transition-colors"
+                        className="p-2.5 rounded-lg bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-colors"
                         disabled={isLoading}
                         title="Edit device"
                       >
@@ -335,7 +336,7 @@ export default function DeviceManager({ devices, displays }: DeviceManagerProps)
                       </button>
                       <button
                         onClick={() => handleDelete(device.id, device.name)}
-                        className="p-2.5 text-ink-gray hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                        className="p-2.5 rounded-lg bg-white/10 text-white/70 hover:bg-red-500/20 hover:text-red-400 transition-colors"
                         disabled={isLoading}
                         title="Delete device"
                       >
@@ -354,26 +355,25 @@ export default function DeviceManager({ devices, displays }: DeviceManagerProps)
       {devices.length > 0 && (
         <div className="ink-card p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-ink-gray/10 rounded-lg flex items-center justify-center">
-              <Wifi className="w-5 h-5 text-ink-gray" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center
+                            bg-gradient-to-br from-[#22d3ee] to-[#3b82f6]">
+              <Wifi className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="font-semibold text-ink-black">API Endpoints</h3>
-              <p className="text-sm text-ink-gray">
-                Use these URLs to fetch images for your devices
-              </p>
+              <h3 className="font-bold text-white">API Endpoints</h3>
+              <p className="text-sm text-white/50">Use these URLs to fetch images for your devices</p>
             </div>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {devices.map((device) => (
-              <div key={device.id} className="p-3 bg-ink-gray/5 rounded-lg border border-ink-gray/10">
-                <p className="text-sm font-medium text-ink-black mb-2">{device.name}</p>
-                <div className="space-y-1">
-                  <code className="block text-xs font-mono text-ink-gray bg-white px-2 py-1.5 rounded border border-ink-gray/20">
-                    <span className="text-green-600">GET</span> /api/devices/{device.id}/random
+              <div key={device.id} className="p-4 rounded-xl bg-black/20 border border-white/10">
+                <p className="text-sm font-semibold text-white mb-2">{device.name}</p>
+                <div className="space-y-2">
+                  <code className="block text-xs font-mono bg-black/30 px-3 py-2 rounded-lg border border-white/10 text-white/70">
+                    <span className="text-green-400">GET</span> /api/devices/{device.id}/random
                   </code>
-                  <code className="block text-xs font-mono text-ink-gray bg-white px-2 py-1.5 rounded border border-ink-gray/20">
-                    <span className="text-blue-600">GET</span> /api/devices/{device.id}/next
+                  <code className="block text-xs font-mono bg-black/30 px-3 py-2 rounded-lg border border-white/10 text-white/70">
+                    <span className="text-[#22d3ee]">GET</span> /api/devices/{device.id}/next
                   </code>
                 </div>
               </div>

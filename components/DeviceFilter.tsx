@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { Device } from '@/lib/types/device';
+import { Monitor } from 'lucide-react';
 
 interface DeviceFilterProps {
   devices: Device[];
@@ -31,11 +32,11 @@ export default function DeviceFilter({ devices, currentDeviceId }: DeviceFilterP
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-ink-gray">Device:</span>
+      <Monitor className="w-4 h-4 text-white/50" />
       <select
         value={currentDeviceId || ''}
         onChange={(e) => handleDeviceChange(e.target.value)}
-        className="ink-input py-1.5 text-sm min-w-[150px]"
+        className="ink-input py-2 text-sm min-w-[160px]"
       >
         <option value="">All Devices</option>
         {devices.map((device) => (
@@ -47,4 +48,3 @@ export default function DeviceFilter({ devices, currentDeviceId }: DeviceFilterP
     </div>
   );
 }
-
