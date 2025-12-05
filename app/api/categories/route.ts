@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCategoriesWithCounts, createCategory } from '@/lib/utils/categories';
+import { requireApiKey } from '@/lib/utils/auth';
 
 /**
  * GET /api/categories - Lists all available categories
+ * 
+ * Authentication: Requires API key via ?key= parameter or Authorization header
+ * (Only enforced when INKYSTREAM_API_KEY environment variable is set)
+ * 
  * Returns categories with their image counts
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Check API key authentication
+  const authError = requireApiKey(request);
+  if (authError) return authError;
+
   try {
     const categories = await getCategoriesWithCounts();
 
@@ -29,6 +38,9 @@ export async function GET() {
 
 /**
  * POST /api/categories - Create a new category
+ * 
+ * Note: No API key required - admin function only accessible locally
+ * 
  * Body: { name: string, description: string, colour: string }
  */
 export async function POST(request: NextRequest) {

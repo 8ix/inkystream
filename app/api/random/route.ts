@@ -1,15 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllImages, getCategoryImages, getImageUrl } from '@/lib/utils/image';
+import { getAllImages, getCategoryImages } from '@/lib/utils/image';
 import { displayExists } from '@/lib/displays/profiles';
 import { categoryExists } from '@/lib/utils/categories';
+import { requireApiKey, extractApiKey } from '@/lib/utils/auth';
 
 /**
  * GET /api/random - Returns a random image for display/category
+ * 
+ * NOTE: This is a legacy endpoint. For new implementations, use
+ * /api/devices/{deviceId}/random instead.
+ * 
+ * Authentication: Requires API key via ?key= parameter or Authorization header
+ * 
  * Query params:
+ *   - key (required if INKYSTREAM_API_KEY is set): API key for authentication
  *   - display (required): Display profile ID
  *   - category (optional): Category ID to filter by
  */
 export async function GET(request: NextRequest) {
+  // Check API key authentication
+  const authError = requireApiKey(request);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const displayId = searchParams.get('display');
@@ -66,11 +78,22 @@ export async function GET(request: NextRequest) {
     // Select random image
     const randomIndex = Math.floor(Math.random() * validImages.length);
     const randomImage = validImages[randomIndex];
+    
+    // Find the variant that matches this display
+    const variant = randomImage.variants.find((v) => v.displayId === displayId);
+    const filename = variant?.filename || `${displayId}.png`;
+
+    // Build image URL with API key if present
+    const apiKey = extractApiKey(request);
+    let imageUrl = `/api/img/${randomImage.categoryId}/${randomImage.id}/${filename}`;
+    if (apiKey) {
+      imageUrl += `?key=${encodeURIComponent(apiKey)}`;
+    }
 
     return NextResponse.json({
       success: true,
       data: {
-        imageUrl: getImageUrl(randomImage.categoryId, randomImage.id, displayId),
+        imageUrl,
         imageId: randomImage.id,
         categoryId: randomImage.categoryId,
         displayId,
@@ -84,4 +107,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

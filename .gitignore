@@ -54,6 +54,18 @@ Thumbs.db
 # State file (used for image rotation)
 .current-state.json
 
-# But DO track processed images in public/images/
-!/public/images/
+# =============================================================================
+# IMAGE STORAGE
+# =============================================================================
+# 
+# Processed images are stored in /images/ (private, not in public/).
+# They are served through the authenticated /api/img/ endpoint.
+#
+# Track processed images - they need to be deployed to Vercel
+!/images/
+# Track the gitkeep but also ensure structure
+!/images/.gitkeep
 
+# Legacy public images folder (kept for backwards compatibility reference)
+!/public/images/
+!/public/images/.gitkeep

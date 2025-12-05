@@ -1,11 +1,19 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getDisplayProfiles } from '@/lib/displays/profiles';
+import { requireApiKey } from '@/lib/utils/auth';
 
 /**
  * GET /api/displays - Lists all supported display types
+ * 
+ * Authentication: Requires API key via ?key= parameter or Authorization header
+ * 
  * Returns available e-ink display profiles
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Check API key authentication
+  const authError = requireApiKey(request);
+  if (authError) return authError;
+
   try {
     const displays = await getDisplayProfiles();
 
@@ -26,4 +34,3 @@ export async function GET() {
     );
   }
 }
-

@@ -456,8 +456,8 @@ export default function CategoryManager({ categories }: CategoryManagerProps) {
             <h3 className="font-bold text-white mb-1">About Categories</h3>
             <p className="text-sm text-white/50 leading-relaxed">
               Categories help you organize your images for easy browsing. When uploading images, 
-              you'll select which category they belong to. Categories with images cannot be deleted 
-              — you'll need to remove the images first.
+              you&apos;ll select which category they belong to. Categories with images cannot be deleted 
+              — you&apos;ll need to remove the images first.
             </p>
           </div>
         </div>

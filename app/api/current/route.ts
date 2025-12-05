@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { getAllImages, getCategoryImages, getImageUrl } from '@/lib/utils/image';
+import { getAllImages, getCategoryImages } from '@/lib/utils/image';
 import { displayExists } from '@/lib/displays/profiles';
 import { categoryExists } from '@/lib/utils/categories';
+import { requireApiKey, extractApiKey } from '@/lib/utils/auth';
 
 const STATE_FILE = path.join(process.cwd(), '.current-state.json');
 
@@ -20,17 +21,24 @@ async function getState(): Promise<CurrentState> {
   }
 }
 
-async function saveState(state: CurrentState): Promise<void> {
-  await fs.writeFile(STATE_FILE, JSON.stringify(state, null, 2));
-}
-
 /**
  * GET /api/current - Returns current image for display/category
+ * 
+ * NOTE: This is a legacy endpoint. For new implementations, use
+ * /api/devices/{deviceId}/current instead.
+ * 
+ * Authentication: Requires API key via ?key= parameter or Authorization header
+ * 
  * Query params:
+ *   - key (required if INKYSTREAM_API_KEY is set): API key for authentication
  *   - display (required): Display profile ID
  *   - category (optional): Category ID to filter by
  */
 export async function GET(request: NextRequest) {
+  // Check API key authentication
+  const authError = requireApiKey(request);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const displayId = searchParams.get('display');
@@ -92,11 +100,22 @@ export async function GET(request: NextRequest) {
     // Ensure index is valid
     const safeIndex = currentIndex % validImages.length;
     const currentImage = validImages[safeIndex];
+    
+    // Find the variant that matches this display
+    const variant = currentImage.variants.find((v) => v.displayId === displayId);
+    const filename = variant?.filename || `${displayId}.png`;
+
+    // Build image URL with API key if present
+    const apiKey = extractApiKey(request);
+    let imageUrl = `/api/img/${currentImage.categoryId}/${currentImage.id}/${filename}`;
+    if (apiKey) {
+      imageUrl += `?key=${encodeURIComponent(apiKey)}`;
+    }
 
     return NextResponse.json({
       success: true,
       data: {
-        imageUrl: getImageUrl(currentImage.categoryId, currentImage.id, displayId),
+        imageUrl,
         imageId: currentImage.id,
         categoryId: currentImage.categoryId,
         displayId,
@@ -112,4 +131,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

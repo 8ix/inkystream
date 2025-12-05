@@ -27,7 +27,7 @@ export default async function AdminDashboard() {
           Welcome back<span className="text-gradient">!</span>
         </h1>
         <p className="text-white/60 mt-2 text-lg">
-          Here's what's happening with your InkyStream library
+          Here&apos;s what&apos;s happening with your InkyStream library
         </p>
       </div>
 
@@ -154,7 +154,7 @@ export default async function AdminDashboard() {
                            bg-black/20 border border-white/10 hover:border-[#ff47b3]/50 transition-all duration-300"
               >
                 <img
-                  src={`/images/${image.categoryId}/${image.id}/thumbnail.png`}
+                  src={`/api/img/${image.categoryId}/${image.id}/thumbnail.png`}
                   alt={image.originalFilename}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAllImages, getCategoryImages, getImageUrlForDevice } from '@/lib/utils/image';
 import { getDevice } from '@/lib/utils/devices';
 import { categoryExists } from '@/lib/utils/categories';
+import { requireApiKey } from '@/lib/utils/auth';
 
 interface RouteParams {
   params: Promise<{
@@ -15,10 +16,18 @@ const deviceCurrentImage: Map<string, { categoryId: string; imageId: string }> =
 
 /**
  * GET /api/devices/[deviceId]/current - Returns the current image for a device
+ * 
+ * Authentication: Requires API key via ?key= parameter or Authorization header
+ * 
  * Query params:
+ *   - key (required if INKYSTREAM_API_KEY is set): API key for authentication
  *   - category (optional): Category ID to filter by
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  // Check API key authentication
+  const authError = requireApiKey(request);
+  if (authError) return authError;
+
   try {
     const { deviceId } = await params;
     const { searchParams } = new URL(request.url);
@@ -89,7 +98,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       success: true,
       data: {
-        imageUrl: getImageUrlForDevice(current.categoryId, current.imageId, deviceId),
+        imageUrl: getImageUrlForDevice(current.categoryId, current.imageId, deviceId, request),
         imageId: current.imageId,
         categoryId: current.categoryId,
         deviceId,
@@ -108,6 +117,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 /**
  * POST /api/devices/[deviceId]/current - Set the current image for a device
+ * 
+ * Note: POST does not require API key as it's an admin function (local only)
+ * 
  * Body: { categoryId: string, imageId: string }
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
@@ -139,7 +151,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       success: true,
       data: {
-        imageUrl: getImageUrlForDevice(categoryId, imageId, deviceId),
+        imageUrl: getImageUrlForDevice(categoryId, imageId, deviceId, request),
         imageId,
         categoryId,
         deviceId,
@@ -153,4 +165,3 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     );
   }
 }
-

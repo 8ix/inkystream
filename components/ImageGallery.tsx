@@ -15,6 +15,15 @@ interface ImageGalleryProps {
 }
 
 /**
+ * Helper to get image URL through the API
+ * In local development, no key is needed
+ * In production, images are served through the authenticated API
+ */
+function getImageApiUrl(categoryId: string, imageId: string, filename: string): string {
+  return `/api/img/${categoryId}/${imageId}/${filename}`;
+}
+
+/**
  * Gallery component displaying processed images
  */
 export default function ImageGallery({ 
@@ -103,8 +112,8 @@ export default function ImageGallery({
             ? image.variants.find((v) => v.deviceId === currentDeviceId)
             : null;
           const thumbnailSrc = deviceVariant
-            ? `/images/${image.categoryId}/${image.id}/${deviceVariant.filename}`
-            : `/images/${image.categoryId}/${image.id}/thumbnail.png`;
+            ? getImageApiUrl(image.categoryId, image.id, deviceVariant.filename)
+            : getImageApiUrl(image.categoryId, image.id, 'thumbnail.png');
 
           return (
             <div
@@ -187,7 +196,7 @@ export default function ImageGallery({
             {/* Image Preview */}
             <div className="p-6 flex justify-center bg-black/20">
               <img
-                src={`/images/${selectedImage.categoryId}/${selectedImage.id}/thumbnail.png`}
+                src={getImageApiUrl(selectedImage.categoryId, selectedImage.id, 'thumbnail.png')}
                 alt={selectedImage.originalFilename}
                 className="max-w-full max-h-80 rounded-xl shadow-2xl"
               />
@@ -221,7 +230,7 @@ export default function ImageGallery({
                     </div>
                     <div className="flex items-center gap-1">
                       <a
-                        href={`/images/${selectedImage.categoryId}/${selectedImage.id}/${variant.filename}`}
+                        href={getImageApiUrl(selectedImage.categoryId, selectedImage.id, variant.filename)}
                         download={`${selectedImage.originalFilename.replace(/\.[^.]+$/, '')}-${variant.deviceId}.png`}
                         className="p-2 rounded-lg bg-white/10 hover:bg-[#22d3ee]/20 hover:text-[#22d3ee] text-white/70 transition-colors"
                         title="Download"
@@ -229,7 +238,7 @@ export default function ImageGallery({
                         <Download className="w-4 h-4" />
                       </a>
                       <a
-                        href={`/images/${selectedImage.categoryId}/${selectedImage.id}/${variant.filename}`}
+                        href={getImageApiUrl(selectedImage.categoryId, selectedImage.id, variant.filename)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-2 rounded-lg bg-white/10 hover:bg-[#a855f7]/20 hover:text-[#a855f7] text-white/70 transition-colors"
@@ -317,7 +326,7 @@ export default function ImageGallery({
               Delete Image?
             </h3>
             <p className="text-white/60 text-center mb-6">
-              Are you sure you want to delete <span className="text-white font-medium">"{selectedImage.originalFilename}"</span>?
+              Are you sure you want to delete <span className="text-white font-medium">&quot;{selectedImage.originalFilename}&quot;</span>?
               This action cannot be undone.
             </p>
             <div className="flex gap-3">

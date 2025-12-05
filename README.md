@@ -19,6 +19,7 @@ InkyStream is an open-source application that helps you process and serve images
 - **Dithering Algorithms** - Floyd-Steinberg, Atkinson, and Ordered dithering
 - **Image Enhancement** - Contrast boost, saturation, denoising, and sharpening
 - **Multiple Display Support** - Pimoroni Inky Frame, Waveshare, and more
+- **API Key Protection** - Secure your images with optional API key authentication
 - **Zero Hosting Costs** - Deploy to Vercel's free tier
 - **Simple Deployment** - Just `git push` to deploy updates
 
@@ -63,7 +64,8 @@ Open [http://localhost:3000](http://localhost:3000) to access the admin interfac
 2. Go to [vercel.com](https://vercel.com) and sign in
 3. Click **Add New** → **Project**
 4. Select your InkyStream repository
-5. Click **Deploy**
+5. **Add environment variable**: `INKYSTREAM_API_KEY` = your secure key (see [Security](#security))
+6. Click **Deploy**
 
 Your API is now live! Update images with:
 
@@ -71,6 +73,48 @@ Your API is now live! Update images with:
 git add .
 git commit -m "Added new photos"
 git push
+```
+
+## Security
+
+InkyStream protects your personal photos with API key authentication.
+
+### Setting Up API Key
+
+1. **Generate a secure key** (32+ characters recommended):
+   ```bash
+   openssl rand -base64 32
+   ```
+
+2. **For Vercel deployment**:
+   - Go to your project settings on Vercel
+   - Navigate to **Environment Variables**
+   - Add `INKYSTREAM_API_KEY` with your key
+   - Redeploy
+
+3. **For local development** (optional):
+   - Copy `.env.example` to `.env.local`
+   - Set `INKYSTREAM_API_KEY=your-key`
+   - Or leave empty for open access during development
+
+### How It Works
+
+- Images are stored in a **private directory** (not publicly accessible)
+- All API endpoints require the API key when `INKYSTREAM_API_KEY` is set
+- Images are served through `/api/img/` which validates the key
+- Admin interface runs locally only (not deployed)
+
+### Using the API Key
+
+Include the key in your requests:
+
+```bash
+# Query parameter (recommended for microcontrollers)
+curl "https://your-domain.vercel.app/api/devices/my-frame/random?key=YOUR_API_KEY"
+
+# Or Authorization header
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+     "https://your-domain.vercel.app/api/devices/my-frame/random"
 ```
 
 ## Project Structure
@@ -89,34 +133,38 @@ inkystream/
 │       │       ├── current/   # Get current image
 │       │       ├── next/      # Rotate to next image
 │       │       └── random/    # Get random image
+│       ├── img/           # Private image serving (auth required)
 │       ├── categories/    # List/manage categories
 │       └── displays/      # List display types
+├── images/                # Private image storage (not in public/)
 ├── lib/                   # Shared libraries
-│   ├── processors/        # Dithering algorithms
-│   ├── displays/          # Display profiles
-│   ├── types/             # TypeScript types
-│   └── utils/             # Utility functions
-├── config/                # Configuration
-│   ├── categories.json    # Category definitions
-│   ├── devices.json       # Your devices
-│   └── displays.json      # Display profiles
-├── public/images/         # Processed images
+├── config/                # Configuration files
 ├── components/            # React components
 └── docs/                  # Documentation
 ```
 
 ## API Reference
 
-### Device-Specific Endpoints (Recommended)
+### Authentication
 
-These endpoints use your device ID for cleaner URLs:
-
-#### GET /api/devices/{deviceId}/current
-
-Get the current image for a device.
+All API endpoints require authentication when `INKYSTREAM_API_KEY` is set:
 
 ```bash
-curl "https://your-domain.vercel.app/api/devices/living-room-frame/current"
+# Include key in query string
+?key=YOUR_API_KEY
+
+# Or use Authorization header
+Authorization: Bearer YOUR_API_KEY
+```
+
+### Device-Specific Endpoints
+
+#### GET /api/devices/{deviceId}/random
+
+Get a random image for a device.
+
+```bash
+curl "https://your-domain.vercel.app/api/devices/living-room-frame/random?key=YOUR_API_KEY"
 ```
 
 #### GET /api/devices/{deviceId}/next
@@ -124,15 +172,15 @@ curl "https://your-domain.vercel.app/api/devices/living-room-frame/current"
 Rotate to the next image.
 
 ```bash
-curl "https://your-domain.vercel.app/api/devices/living-room-frame/next"
+curl "https://your-domain.vercel.app/api/devices/living-room-frame/next?key=YOUR_API_KEY"
 ```
 
-#### GET /api/devices/{deviceId}/random
+#### GET /api/devices/{deviceId}/current
 
-Get a random image.
+Get the current image for a device.
 
 ```bash
-curl "https://your-domain.vercel.app/api/devices/living-room-frame/random?category=landscapes"
+curl "https://your-domain.vercel.app/api/devices/living-room-frame/current?key=YOUR_API_KEY"
 ```
 
 **Response:**
@@ -140,7 +188,7 @@ curl "https://your-domain.vercel.app/api/devices/living-room-frame/random?catego
 {
   "success": true,
   "data": {
-    "imageUrl": "/images/landscapes/abc123/living-room-frame.png",
+    "imageUrl": "/api/img/landscapes/abc123/living-room-frame.png?key=YOUR_API_KEY",
     "imageId": "abc123",
     "categoryId": "landscapes",
     "deviceId": "living-room-frame"
@@ -148,17 +196,22 @@ curl "https://your-domain.vercel.app/api/devices/living-room-frame/random?catego
 }
 ```
 
+### Image Serving
+
+Images are served through the authenticated `/api/img/` endpoint:
+
+```bash
+curl "https://your-domain.vercel.app/api/img/landscapes/abc123/living-room-frame.png?key=YOUR_API_KEY"
+```
+
 ### Other Endpoints
 
 ```bash
 # List all categories
-curl "https://your-domain.vercel.app/api/categories"
+curl "https://your-domain.vercel.app/api/categories?key=YOUR_API_KEY"
 
 # List supported display types
-curl "https://your-domain.vercel.app/api/displays"
-
-# List your devices
-curl "https://your-domain.vercel.app/api/devices"
+curl "https://your-domain.vercel.app/api/displays?key=YOUR_API_KEY"
 ```
 
 ## Frame Configuration
@@ -170,12 +223,15 @@ import urequests
 import ujson
 
 API_BASE = "https://your-domain.vercel.app"
-DEVICE_ID = "living-room-frame"  # Your device ID from InkyStream
+DEVICE_ID = "living-room-frame"
+API_KEY = "YOUR_API_KEY"  # Keep this secret!
 
 def get_image_url():
-    url = f"{API_BASE}/api/devices/{DEVICE_ID}/random"
+    url = f"{API_BASE}/api/devices/{DEVICE_ID}/random?key={API_KEY}"
     response = urequests.get(url)
     data = ujson.loads(response.text)
+    response.close()
+    # Image URL already includes the API key
     return API_BASE + data["data"]["imageUrl"]
 
 # Fetch and display the image
@@ -260,13 +316,7 @@ This ensures:
 - Zero hosting costs (Vercel free tier)
 - No public upload endpoints (security)
 - Simple git-based deployment
-
-## Security
-
-- Admin interface runs **locally only**
-- API endpoints are **read-only**
-- No authentication required (local admin)
-- Vercel rewrites block non-API routes in production
+- Protected image access with API keys
 
 ## Contributing
 

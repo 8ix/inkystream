@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAllImages, getCategoryImages, getImageUrlForDevice } from '@/lib/utils/image';
 import { getDevice } from '@/lib/utils/devices';
 import { categoryExists } from '@/lib/utils/categories';
+import { requireApiKey } from '@/lib/utils/auth';
 
 interface RouteParams {
   params: Promise<{
@@ -14,10 +15,18 @@ const deviceImageIndex: Map<string, number> = new Map();
 
 /**
  * GET /api/devices/[deviceId]/next - Returns the next image in sequence for a device
+ * 
+ * Authentication: Requires API key via ?key= parameter or Authorization header
+ * 
  * Query params:
+ *   - key (required if INKYSTREAM_API_KEY is set): API key for authentication
  *   - category (optional): Category ID to filter by
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  // Check API key authentication
+  const authError = requireApiKey(request);
+  if (authError) return authError;
+
   try {
     const { deviceId } = await params;
     const { searchParams } = new URL(request.url);
@@ -80,7 +89,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       success: true,
       data: {
-        imageUrl: getImageUrlForDevice(nextImage.categoryId, nextImage.id, deviceId),
+        imageUrl: getImageUrlForDevice(nextImage.categoryId, nextImage.id, deviceId, request),
         imageId: nextImage.id,
         categoryId: nextImage.categoryId,
         deviceId,
@@ -97,4 +106,3 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     );
   }
 }
-

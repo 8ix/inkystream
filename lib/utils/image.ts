@@ -1,18 +1,24 @@
 /**
  * Image processing utilities for InkyStream
  * Handles image upload, processing, and storage
+ * 
+ * SECURITY: Images are stored in a private directory (not public/)
+ * and served through an authenticated API endpoint.
  */
 
 import sharp from 'sharp';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { NextRequest } from 'next/server';
 import type { ImageMetadata, ImageVariant } from '@/lib/types/image';
 import { processWithDithering, DEFAULT_ENHANCEMENT_OPTIONS, type DitheringAlgorithm, type RGB, type EnhancementOptions } from '@/lib/processors/dither';
 import { getDisplayProfile, hexToRgb } from '@/lib/displays/profiles';
 import { getDevice } from '@/lib/utils/devices';
+import { extractApiKey } from '@/lib/utils/auth';
 
-const IMAGES_DIR = path.join(process.cwd(), 'public', 'images');
+// PRIVATE images directory - not in public/, served through API
+const IMAGES_DIR = path.join(process.cwd(), 'images');
 const THUMBNAIL_SIZE = 200;
 
 /**
@@ -24,6 +30,17 @@ async function ensureDir(dirPath: string): Promise<void> {
   } catch (error) {
     // Directory might already exist
   }
+}
+
+/**
+ * Get the file system path to an image
+ */
+export function getImagePath(
+  categoryId: string,
+  imageId: string,
+  filename: string
+): string {
+  return path.join(IMAGES_DIR, categoryId, imageId, filename);
 }
 
 /**
@@ -290,18 +307,84 @@ export async function deleteImage(
 
 /**
  * Get the URL path for an image variant by device
+ * Returns an API URL that includes the API key for authentication
+ * 
+ * @param categoryId - The category the image belongs to
+ * @param imageId - The unique image ID
+ * @param deviceId - The device ID for this variant
+ * @param request - Optional request to extract API key from (for passing key through)
  */
 export function getImageUrlForDevice(
   categoryId: string,
   imageId: string,
-  deviceId: string
+  deviceId: string,
+  request?: NextRequest
 ): string {
-  return `/images/${categoryId}/${imageId}/${deviceId}.png`;
+  const basePath = `/api/img/${categoryId}/${imageId}/${deviceId}.png`;
+  
+  // If we have a request, extract the API key and include it in the URL
+  if (request) {
+    const apiKey = extractApiKey(request);
+    if (apiKey) {
+      return `${basePath}?key=${encodeURIComponent(apiKey)}`;
+    }
+  }
+  
+  return basePath;
 }
 
 /**
  * Get the URL path for an image thumbnail
+ * Returns an API URL for the authenticated image serving endpoint
  */
-export function getThumbnailUrl(categoryId: string, imageId: string): string {
-  return `/images/${categoryId}/${imageId}/thumbnail.png`;
+export function getThumbnailUrl(
+  categoryId: string, 
+  imageId: string,
+  request?: NextRequest
+): string {
+  const basePath = `/api/img/${categoryId}/${imageId}/thumbnail.png`;
+  
+  if (request) {
+    const apiKey = extractApiKey(request);
+    if (apiKey) {
+      return `${basePath}?key=${encodeURIComponent(apiKey)}`;
+    }
+  }
+  
+  return basePath;
+}
+
+/**
+ * Read an image file from the private storage
+ */
+export async function readImageFile(
+  categoryId: string,
+  imageId: string,
+  filename: string
+): Promise<Buffer | null> {
+  const filePath = getImagePath(categoryId, imageId, filename);
+  
+  try {
+    return await fs.readFile(filePath);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check if an image file exists
+ */
+export async function imageFileExists(
+  categoryId: string,
+  imageId: string,
+  filename: string
+): Promise<boolean> {
+  const filePath = getImagePath(categoryId, imageId, filename);
+  
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
