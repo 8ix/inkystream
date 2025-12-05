@@ -170,6 +170,10 @@ body {
   .glow-cyan {
     box-shadow: 0 0 30px rgba(34, 211, 238, 0.4);
   }
+  
+  .glow-gold {
+    box-shadow: 0 0 30px rgba(251, 191, 36, 0.4);
+  }
 }
 
 /* Scrollbar styling */

@@ -10,6 +10,16 @@ import type { Category, CategoriesConfig } from '@/lib/types/category';
 const CONFIG_PATH = path.join(process.cwd(), 'config', 'categories.json');
 
 /**
+ * Generate a slug from a category name
+ */
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+/**
  * Load all categories from the configuration file
  */
 export async function getCategories(): Promise<Category[]> {
@@ -69,3 +79,102 @@ export async function categoryExists(id: string): Promise<boolean> {
   return category !== null;
 }
 
+/**
+ * Create a new category
+ */
+export async function createCategory(
+  name: string,
+  description: string,
+  colour: string
+): Promise<Category> {
+  const categories = await getCategories();
+  const id = generateSlug(name);
+
+  // Check if ID already exists
+  if (categories.some((cat) => cat.id === id)) {
+    throw new Error(`Category with name '${name}' already exists.`);
+  }
+
+  const newCategory: Category = {
+    id,
+    name,
+    description,
+    colour,
+  };
+
+  categories.push(newCategory);
+  await fs.writeFile(CONFIG_PATH, JSON.stringify({ categories }, null, 2), 'utf-8');
+
+  // Create the category's image directory
+  const categoryDir = path.join(process.cwd(), 'public', 'images', id);
+  try {
+    await fs.mkdir(categoryDir, { recursive: true });
+  } catch {
+    // Directory might already exist
+  }
+
+  return newCategory;
+}
+
+/**
+ * Update an existing category
+ */
+export async function updateCategory(
+  id: string,
+  name: string,
+  description: string,
+  colour: string
+): Promise<Category | null> {
+  const categories = await getCategories();
+  const index = categories.findIndex((cat) => cat.id === id);
+
+  if (index === -1) {
+    return null; // Category not found
+  }
+
+  const updatedCategory: Category = {
+    ...categories[index],
+    name,
+    description,
+    colour,
+    // Note: We don't change the ID to avoid breaking image paths
+  };
+
+  categories[index] = updatedCategory;
+  await fs.writeFile(CONFIG_PATH, JSON.stringify({ categories }, null, 2), 'utf-8');
+
+  return updatedCategory;
+}
+
+/**
+ * Delete a category
+ * Returns false if category not found, throws error if category has images
+ */
+export async function deleteCategory(id: string): Promise<boolean> {
+  const categories = await getCategories();
+  const index = categories.findIndex((cat) => cat.id === id);
+
+  if (index === -1) {
+    return false; // Category not found
+  }
+
+  // Check if category has images
+  const imageCount = await getCategoryImageCount(id);
+  if (imageCount > 0) {
+    throw new Error(`Cannot delete category: it contains ${imageCount} image(s). Please delete or move them first.`);
+  }
+
+  // Remove from array
+  categories.splice(index, 1);
+  await fs.writeFile(CONFIG_PATH, JSON.stringify({ categories }, null, 2), 'utf-8');
+
+  // Optionally remove the empty directory
+  const categoryDir = path.join(process.cwd(), 'public', 'images', id);
+  try {
+    await fs.rmdir(categoryDir);
+  } catch {
+    // Directory might not exist or not be empty
+  }
+
+  return true;
+}

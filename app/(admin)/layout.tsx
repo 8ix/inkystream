@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Upload, Image, Monitor } from 'lucide-react';
+import { Home, Upload, Image, Palette, Monitor } from 'lucide-react';
 
 const navItems = [
   { href: '/', icon: Home, label: 'Dashboard' },
   { href: '/upload', icon: Upload, label: 'Upload' },
   { href: '/gallery', icon: Image, label: 'Gallery' },
+  { href: '/categories', icon: Palette, label: 'Categories' },
   { href: '/devices', icon: Monitor, label: 'Devices' },
 ];
 
