@@ -14,12 +14,17 @@ export {
   DEFAULT_ENHANCEMENT_OPTIONS,
   FIT_MODES,
   FIT_MODE_OPTIONS,
+  IMAGE_TYPES,
+  IMAGE_TYPE_PRESETS,
+  createEnhancementFromPreset,
   type DitheringAlgorithm,
   type RGB,
   type LAB,
   type OKLab,
   type EnhancementOptions,
   type FitMode,
+  type ImageType,
+  type ImageTypePreset,
 } from './dither-types';
 
 import type { DitheringAlgorithm, RGB, LAB, OKLab, EnhancementOptions, FitMode } from './dither-types';
@@ -1007,14 +1012,13 @@ function addNoiseToSolidRegions(
 
 /**
  * Process image with dithering using Sharp
- * Implements the research-backed preprocessing pipeline:
- * 1. Resize with smart fitting
- * 2. CLAHE for adaptive contrast (better than normalize)
- * 3. Saturation boost (1.4× for e-ink)
- * 4. Bilateral filter (edge-preserving smoothing)
- * 5. Sharpening (compensate for smoothing)
- * 6. Gamma correction (1.85 for e-ink)
- * 7. Dithering (Stucki default, OKLab color matching)
+ * Pipeline:
+ * 1. Smart resize/fit (auto-rotation, cover/contain)
+ * 2. Contrast normalization (optional)
+ * 3. Saturation boost for e-ink
+ * 4. Noise reduction (optional)
+ * 5. Sharpening (optional)
+ * 6. Error-diffusion dithering with CIELAB color matching
  */
 export async function processWithDithering(
   inputBuffer: Buffer,
@@ -1056,32 +1060,28 @@ export async function processWithDithering(
     pipeline = pipeline.flatten({ background: bgColor });
   }
 
-  // Apply basic contrast enhancement via Sharp if CLAHE is disabled
-  // (CLAHE will be applied later in pixel processing for better control)
-  if (enhancement.autoContrast && !enhancement.useClahe) {
+  // Apply contrast enhancement
+  if (enhancement.autoContrast) {
     pipeline = pipeline.normalize();
   }
 
   // Boost saturation - e-ink displays mute colors significantly
-  // Research recommends 1.4× boost for limited palette displays
   if (enhancement.saturation !== 1.0) {
     pipeline = pipeline.modulate({
       saturation: enhancement.saturation,
     });
   }
 
-  // Apply median filter for basic denoising if bilateral is disabled
-  // (Bilateral will be applied later in pixel processing for edge preservation)
-  if (enhancement.denoise && !enhancement.useBilateral) {
+  // Apply median filter for denoising
+  if (enhancement.denoise) {
     pipeline = pipeline.median(3);
   }
 
   // Sharpen to restore edges lost from smoothing and resize
-  // Applied before pixel processing to benefit from Sharp's quality
   if (enhancement.sharpen) {
     pipeline = pipeline.sharpen({
       sigma: 0.8,
-      m1: 1.2,  // Increased for better edge definition
+      m1: 1.2,
       m2: 0.7,
     });
   }
@@ -1096,7 +1096,6 @@ export async function processWithDithering(
   // Convert to RGBA if needed
   let pixels: Uint8ClampedArray;
   if (info.channels === 3) {
-    // Convert RGB to RGBA
     pixels = new Uint8ClampedArray(info.width * info.height * 4);
     for (let i = 0; i < info.width * info.height; i++) {
       pixels[i * 4] = data[i * 3];
@@ -1108,51 +1107,10 @@ export async function processWithDithering(
     pixels = new Uint8ClampedArray(data);
   }
 
-  // ============================================
-  // Advanced preprocessing pipeline (pixel-level)
-  // Research indicates preprocessing is 60% of quality
-  // ============================================
-
-  // 1. Apply CLAHE for superior local contrast enhancement
-  // Better than global normalize for photos with uneven lighting
-  // Note: CLAHE is disabled by default as it can cause over-brightening
-  if (enhancement.useClahe) {
-    pixels = applyClahe(
-      pixels,
-      info.width,
-      info.height,
-      enhancement.claheClipLimit ?? 2.0,
-      enhancement.claheTileSize ?? 8
-    );
-  }
-
-  // 2. Apply bilateral filter for edge-preserving smoothing
-  // Smooths gradients (reducing dithering noise in skies) while keeping edges sharp
-  if (enhancement.useBilateral && enhancement.denoise) {
-    pixels = applyBilateralFilter(
-      pixels,
-      info.width,
-      info.height,
-      enhancement.bilateralSigmaSpace ?? 6,
-      enhancement.bilateralSigmaRange ?? 0.12
-    );
-  }
-
-  // 3. For contain/letterbox mode, add subtle noise to help dithering create patterns
+  // For contain/letterbox mode, add subtle noise to help dithering create patterns
   // on solid color regions (like letterbox bars) so they match the e-ink aesthetic
   if (fit === 'contain') {
     pixels = addNoiseToSolidRegions(pixels, info.width, info.height, 6);
-  }
-
-  // 4. Apply gamma correction for e-ink display characteristics
-  // E-ink displays are typically darker (gamma ~1.85 vs sRGB 2.2)
-  if (enhancement.displayGamma && enhancement.displayGamma !== 2.2) {
-    pixels = applyGammaCorrection(
-      pixels,
-      info.width,
-      info.height,
-      enhancement.displayGamma
-    );
   }
 
   // ============================================

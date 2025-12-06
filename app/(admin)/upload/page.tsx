@@ -7,10 +7,10 @@ import ProcessingForm, { type ProcessingOptions } from '@/components/ProcessingF
 import type { Category } from '@/lib/types/category';
 import type { Device } from '@/lib/types/device';
 import type { DisplayProfile } from '@/lib/types/display';
-import { CheckCircle, AlertCircle, Upload, Sparkles, Lightbulb } from 'lucide-react';
+import { CheckCircle, AlertCircle, Upload, Sparkles, Info } from 'lucide-react';
 
 /**
- * Upload page - upload and process images for e-ink displays
+ * Upload page - simplified image upload and processing for e-ink displays
  */
 export default function UploadPage() {
   const router = useRouter();
@@ -109,7 +109,7 @@ export default function UploadPage() {
           <h1 className="text-3xl font-bold text-white">Upload Images</h1>
         </div>
         <p className="text-white/60">
-          Upload and process images for your e-ink devices
+          Tell us what you&apos;re uploading and we&apos;ll optimize it for your e-ink displays
         </p>
       </div>
 
@@ -173,7 +173,7 @@ export default function UploadPage() {
         <div className="ink-card p-6">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-[#a855f7]" />
-            <h2 className="text-xl font-bold text-white">Processing Options</h2>
+            <h2 className="text-xl font-bold text-white">Configure</h2>
           </div>
           <ProcessingForm
             categories={categories}
@@ -186,30 +186,29 @@ export default function UploadPage() {
         </div>
       </div>
 
-      {/* Help Section */}
+      {/* How it Works */}
       <div className="ink-card p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Lightbulb className="w-5 h-5 text-[#fbbf24]" />
-          <h3 className="font-bold text-white">Tips for Best Results</h3>
+          <Info className="w-5 h-5 text-[#22d3ee]" />
+          <h3 className="font-bold text-white">How It Works</h3>
         </div>
-        <ul className="text-sm text-white/60 space-y-2">
-          <li className="flex items-start gap-2">
-            <span className="text-[#ff47b3]">•</span>
-            Use high-quality source images for better output
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-[#a855f7]">•</span>
-            High-contrast images work best on e-ink displays
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-[#22d3ee]">•</span>
-            Floyd-Steinberg dithering is recommended for photos
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-[#fbbf24]">•</span>
-            Ordered dithering works well for graphics with sharp edges
-          </li>
-        </ul>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div className="p-4 rounded-xl bg-black/20 border border-white/10">
+            <div className="text-2xl mb-2">1️⃣</div>
+            <p className="font-medium text-white mb-1">Upload your images</p>
+            <p className="text-white/50">Drag and drop or click to select up to 10 images</p>
+          </div>
+          <div className="p-4 rounded-xl bg-black/20 border border-white/10">
+            <div className="text-2xl mb-2">2️⃣</div>
+            <p className="font-medium text-white mb-1">Tell us what it is</p>
+            <p className="text-white/50">We&apos;ll automatically apply the best settings for your content</p>
+          </div>
+          <div className="p-4 rounded-xl bg-black/20 border border-white/10">
+            <div className="text-2xl mb-2">3️⃣</div>
+            <p className="font-medium text-white mb-1">Choose your devices</p>
+            <p className="text-white/50">We&apos;ll create optimized versions for each e-ink display</p>
+          </div>
+        </div>
       </div>
     </div>
   );

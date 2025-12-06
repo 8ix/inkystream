@@ -2,21 +2,18 @@ import { getCategoriesWithCounts } from '@/lib/utils/categories';
 import { getDisplayProfiles } from '@/lib/displays/profiles';
 import { getAllImages } from '@/lib/utils/image';
 import { getDevices } from '@/lib/utils/devices';
-import { checkAndSetupApiKey } from '@/lib/utils/setup';
 import Link from 'next/link';
 import { Upload, Image, Layers, Monitor, Sparkles, ArrowRight, Zap } from 'lucide-react';
-import ApiKeySetup from '@/components/ApiKeySetup';
 
 /**
  * Admin Dashboard - Overview of the image library
  */
 export default async function AdminDashboard() {
-  const [categories, displays, images, devices, setupStatus] = await Promise.all([
+  const [categories, displays, images, devices] = await Promise.all([
     getCategoriesWithCounts(),
     getDisplayProfiles(),
     getAllImages(),
     getDevices(),
-    checkAndSetupApiKey(),
   ]);
 
   const totalImages = images.length;
@@ -33,14 +30,6 @@ export default async function AdminDashboard() {
           Here&apos;s what&apos;s happening with your InkyStream library
         </p>
       </div>
-
-      {/* API Key Setup - Show prominently if newly generated */}
-      {setupStatus.apiKey && (
-        <ApiKeySetup 
-          apiKey={setupStatus.apiKey} 
-          isNewlyGenerated={setupStatus.isNewlyGenerated} 
-        />
-      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -159,17 +148,19 @@ export default async function AdminDashboard() {
         {recentImages.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {recentImages.map((image) => (
-              <div
+              <Link
                 key={image.id}
-                className="aspect-[4/3] rounded-xl overflow-hidden group cursor-pointer
-                           bg-black/20 border border-white/10 hover:border-[#ff47b3]/50 transition-all duration-300"
+                href={`/gallery?category=${image.categoryId}`}
+                className="aspect-[4/3] rounded-xl overflow-hidden group
+                           bg-black/20 border border-white/10 hover:border-[#ff47b3]/50 
+                           transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-[#ff47b3]/20"
               >
                 <img
                   src={`/api/img/${image.categoryId}/${image.id}/thumbnail.png`}
                   alt={image.originalFilename}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
-              </div>
+              </Link>
             ))}
           </div>
         ) : (
@@ -187,84 +178,65 @@ export default async function AdminDashboard() {
         )}
       </div>
 
-      {/* Devices & Displays */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Devices */}
-        <div className="ink-card p-6">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2">
-              <Monitor className="w-5 h-5 text-[#22d3ee]" />
-              <h2 className="text-xl font-bold text-white">Your Devices</h2>
+      {/* Your Devices */}
+      <div className="ink-card p-6">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <Monitor className="w-5 h-5 text-[#22d3ee]" />
+            <h2 className="text-xl font-bold text-white">Your Devices</h2>
+          </div>
+          <Link
+            href="/devices"
+            className="text-sm text-[#ff47b3] hover:text-[#22d3ee] font-medium flex items-center gap-1 transition-colors"
+          >
+            Manage <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+        
+        {devices.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {devices.map((device) => {
+              const display = displays.find(d => d.id === device.displayId);
+              return (
+                <Link
+                  key={device.id}
+                  href="/devices"
+                  className="flex items-center gap-3 p-4 rounded-xl bg-black/10 border border-white/10
+                             hover:bg-black/20 hover:border-[#ff47b3]/40 transition-all duration-200 group"
+                >
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center
+                                  bg-gradient-to-br from-[#ff47b3] to-[#a855f7] glow-pink">
+                    <Monitor className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-white group-hover:text-[#ff47b3] transition-colors">
+                      {device.name}
+                    </p>
+                    <p className="text-sm text-white/50">
+                      {display?.name || device.displayId}
+                    </p>
+                    {display && (
+                      <p className="text-xs text-white/40">
+                        {display.width}×{display.height} • {display.palette.length} colors
+                      </p>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center
+                            bg-gradient-to-br from-[#22d3ee]/20 to-[#06b6d4]/20 border border-white/10">
+              <Monitor className="w-8 h-8 text-[#22d3ee]/50" />
             </div>
-            <Link
-              href="/devices"
-              className="text-sm text-[#ff47b3] hover:text-[#22d3ee] font-medium flex items-center gap-1 transition-colors"
-            >
-              Manage <ArrowRight className="w-4 h-4" />
+            <p className="text-white/50 mb-4">No devices configured yet</p>
+            <Link href="/devices" className="ink-button inline-flex items-center gap-2">
+              Add your first device
             </Link>
           </div>
-          
-          {devices.length > 0 ? (
-            <div className="space-y-3">
-              {devices.slice(0, 3).map((device) => {
-                const display = displays.find(d => d.id === device.displayId);
-                return (
-                  <div
-                    key={device.id}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-black/10 border border-white/10"
-                  >
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center
-                                    bg-gradient-to-br from-[#ff47b3] to-[#a855f7] glow-pink">
-                      <Monitor className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-white">{device.name}</p>
-                      <p className="text-xs text-white/50">{display?.name || device.displayId}</p>
-                    </div>
-                  </div>
-                );
-              })}
-              {devices.length > 3 && (
-                <p className="text-sm text-white/40 text-center pt-2">
-                  +{devices.length - 3} more devices
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-white/50 mb-3">No devices configured</p>
-              <Link href="/devices" className="text-[#ff47b3] hover:text-[#22d3ee] text-sm font-medium transition-colors">
-                Add your first device →
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* Display Types */}
-        <div className="ink-card p-6">
-          <div className="flex items-center gap-2 mb-5">
-            <Layers className="w-5 h-5 text-[#fbbf24]" />
-            <h2 className="text-xl font-bold text-white">Display Types</h2>
-          </div>
-          <div className="space-y-3">
-            {displays.slice(0, 4).map((display) => (
-              <div
-                key={display.id}
-                className="p-3 rounded-xl bg-black/10 border border-white/10"
-              >
-                <p className="font-medium text-white">{display.name}</p>
-                <p className="text-xs text-white/50 mt-1">
-                  {display.width}×{display.height} • {display.palette.length} colors
-                </p>
-              </div>
-            ))}
-            {displays.length > 4 && (
-              <p className="text-sm text-white/40 text-center pt-2">
-                +{displays.length - 4} more display types
-              </p>
-            )}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

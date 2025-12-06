@@ -40,6 +40,84 @@ export const FIT_MODE_OPTIONS: { value: FitMode; label: string; description: str
   },
 ];
 
+// ============================================================================
+// Image Type Presets - Simplified user selection
+// Users pick what they're uploading, we auto-select the best settings
+// ============================================================================
+
+export const IMAGE_TYPES = [
+  'photograph',
+  'artwork', 
+  'graphics',
+  'screenshot',
+] as const;
+
+export type ImageType = (typeof IMAGE_TYPES)[number];
+
+export interface ImageTypePreset {
+  id: ImageType;
+  label: string;
+  icon: string;
+  description: string;
+  examples: string;
+  algorithm: DitheringAlgorithm;
+  saturation: number;
+  autoContrast: boolean;
+  denoise: boolean;
+  sharpen: boolean;
+}
+
+export const IMAGE_TYPE_PRESETS: Record<ImageType, ImageTypePreset> = {
+  photograph: {
+    id: 'photograph',
+    label: 'Photograph',
+    icon: '📷',
+    description: 'Best for photos - smooth gradients, natural colors',
+    examples: 'Family photos, landscapes, portraits, nature',
+    algorithm: 'stucki',
+    saturation: 1.3,
+    autoContrast: true,
+    denoise: true,
+    sharpen: true,
+  },
+  artwork: {
+    id: 'artwork',
+    label: 'Artwork',
+    icon: '🎨',
+    description: 'Preserves artistic details and textures',
+    examples: 'Paintings, illustrations, drawings, digital art',
+    algorithm: 'floyd-steinberg',
+    saturation: 1.2,
+    autoContrast: true,
+    denoise: false,
+    sharpen: true,
+  },
+  graphics: {
+    id: 'graphics',
+    label: 'Graphics',
+    icon: '✏️',
+    description: 'Sharp edges for clean, crisp output',
+    examples: 'Logos, icons, text, posters, infographics',
+    algorithm: 'ordered',
+    saturation: 1.0,
+    autoContrast: false,
+    denoise: false,
+    sharpen: false,
+  },
+  screenshot: {
+    id: 'screenshot',
+    label: 'Screenshot',
+    icon: '🖥️',
+    description: 'High contrast for readable UI elements',
+    examples: 'UI mockups, diagrams, charts, documents',
+    algorithm: 'atkinson',
+    saturation: 1.0,
+    autoContrast: true,
+    denoise: false,
+    sharpen: true,
+  },
+};
+
 export interface RGB {
   r: number;
   g: number;
@@ -64,49 +142,47 @@ export interface OKLab {
 
 /**
  * Image enhancement options for pre-processing before dithering
+ * These are now auto-configured based on ImageType selection
  */
 export interface EnhancementOptions {
-  /** Auto-adjust contrast and levels (basic normalize) */
+  /** Auto-adjust contrast and levels */
   autoContrast: boolean;
-  /** Use CLAHE instead of basic normalize (better for uneven lighting) */
-  useClahe: boolean;
-  /** CLAHE clip limit (2.0-4.0, higher = more contrast, default 2.5) */
-  claheClipLimit: number;
-  /** CLAHE tile size (4-16, smaller = more local contrast, default 8) */
-  claheTileSize: number;
-  /** Saturation multiplier (1.0 = normal, 1.4 = 40% boost for e-ink) */
+  /** Saturation multiplier (1.0 = normal) */
   saturation: number;
   /** Apply noise reduction to reduce speckling */
   denoise: boolean;
-  /** Use bilateral filter instead of median (preserves edges better) */
-  useBilateral: boolean;
-  /** Bilateral filter sigma for spatial distance (default 6) */
-  bilateralSigmaSpace: number;
-  /** Bilateral filter sigma for color range (default 0.12) */
-  bilateralSigmaRange: number;
   /** Apply sharpening after resize */
   sharpen: boolean;
   /** How to fit the image into the frame */
   fitMode: FitMode;
   /** Background color for letterboxing (hex color) */
   backgroundColor: string;
-  /** E-ink display gamma correction (1.85 typical, 2.2 = none) */
-  displayGamma: number;
+}
+
+/**
+ * Create enhancement options from an image type preset
+ */
+export function createEnhancementFromPreset(
+  preset: ImageTypePreset,
+  fitMode: FitMode = 'smart',
+  backgroundColor: string = '#FFFFFF'
+): EnhancementOptions {
+  return {
+    autoContrast: preset.autoContrast,
+    saturation: preset.saturation,
+    denoise: preset.denoise,
+    sharpen: preset.sharpen,
+    fitMode,
+    backgroundColor,
+  };
 }
 
 export const DEFAULT_ENHANCEMENT_OPTIONS: EnhancementOptions = {
   autoContrast: true,
-  useClahe: false,  // Disabled by default - can cause over-brightening
-  claheClipLimit: 2.0,  // Conservative clip limit
-  claheTileSize: 8,
-  saturation: 1.3,  // Moderate boost - 1.4 was too aggressive
+  saturation: 1.3,
   denoise: true,
-  useBilateral: false,  // Disabled by default - slower and can cause issues
-  bilateralSigmaSpace: 6,
-  bilateralSigmaRange: 0.12,
   sharpen: true,
   fitMode: 'smart',
   backgroundColor: '#FFFFFF',
-  displayGamma: 2.2,  // Disabled by default (2.2 = no change from sRGB)
 };
 

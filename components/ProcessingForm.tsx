@@ -1,18 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { Category } from '@/lib/types/category';
 import type { Device } from '@/lib/types/device';
 import type { DisplayProfile } from '@/lib/types/display';
 import { 
-  DITHERING_ALGORITHMS, 
-  DEFAULT_ENHANCEMENT_OPTIONS,
+  IMAGE_TYPE_PRESETS,
+  IMAGE_TYPES,
   FIT_MODE_OPTIONS,
+  createEnhancementFromPreset,
+  type ImageType,
   type DitheringAlgorithm,
   type EnhancementOptions,
+  type FitMode,
 } from '@/lib/processors/dither-types';
-import { Monitor, Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Monitor, Plus, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 
 interface ProcessingFormProps {
   categories: Category[];
@@ -31,7 +34,8 @@ export interface ProcessingOptions {
 }
 
 /**
- * Form component for configuring image processing options
+ * Simplified form component for image processing
+ * Users select what type of image they're uploading, and we handle the rest
  */
 export default function ProcessingForm({
   categories,
@@ -41,11 +45,28 @@ export default function ProcessingForm({
   isProcessing,
   hasFiles,
 }: ProcessingFormProps) {
+  const [imageType, setImageType] = useState<ImageType>('photograph');
   const [categoryId, setCategoryId] = useState('');
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
-  const [dithering, setDithering] = useState<DitheringAlgorithm>('floyd-steinberg');
-  const [enhancement, setEnhancement] = useState<EnhancementOptions>(DEFAULT_ENHANCEMENT_OPTIONS);
+  const [fitMode, setFitMode] = useState<FitMode>('smart');
+  const [backgroundColor, setBackgroundColor] = useState('#FFFFFF');
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const selectedPreset = IMAGE_TYPE_PRESETS[imageType];
+
+  // Auto-select first category if none selected and categories are available
+  useEffect(() => {
+    if (!categoryId && categories.length > 0) {
+      setCategoryId(categories[0].id);
+    }
+  }, [categories, categoryId]);
+
+  // Auto-select the only device if there's just one
+  useEffect(() => {
+    if (devices.length === 1 && selectedDevices.length === 0) {
+      setSelectedDevices([devices[0].id]);
+    }
+  }, [devices, selectedDevices.length]);
 
   const handleDeviceToggle = (deviceId: string) => {
     setSelectedDevices((prev) =>
@@ -63,10 +84,12 @@ export default function ProcessingForm({
     e.preventDefault();
     if (!categoryId || selectedDevices.length === 0) return;
 
+    const enhancement = createEnhancementFromPreset(selectedPreset, fitMode, backgroundColor);
+
     onSubmit({
       categoryId,
       deviceIds: selectedDevices,
-      dithering,
+      dithering: selectedPreset.algorithm,
       enhancement,
     });
   };
@@ -75,10 +98,55 @@ export default function ProcessingForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Image Type Selection - The main question */}
+      <div>
+        <label className="ink-label flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-[#ff47b3]" />
+          What are you uploading?
+        </label>
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          {IMAGE_TYPES.map((type) => {
+            const preset = IMAGE_TYPE_PRESETS[type];
+            const isSelected = imageType === type;
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setImageType(type)}
+                disabled={isProcessing}
+                className={`p-4 rounded-xl text-left transition-all duration-200 ${
+                  isSelected
+                    ? 'bg-gradient-to-br from-[#ff47b3]/30 to-[#a855f7]/30 border-2 border-[#ff47b3] scale-[1.02]'
+                    : 'bg-black/20 border border-white/10 hover:border-white/30'
+                }`}
+              >
+                <div className="text-2xl mb-2">{preset.icon}</div>
+                <p className="font-bold text-white text-sm">{preset.label}</p>
+                <p className="text-xs text-white/50 mt-1 line-clamp-2">{preset.examples}</p>
+              </button>
+            );
+          })}
+        </div>
+        
+        {/* Show what settings will be used */}
+        <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-[#ff47b3]/10 to-[#a855f7]/10 border border-[#ff47b3]/20">
+          <p className="text-xs text-white/70">
+            <span className="text-[#ff47b3] font-medium">Optimized for {selectedPreset.label}:</span>{' '}
+            {selectedPreset.description}
+          </p>
+          <p className="text-xs text-white/40 mt-1">
+            Using {selectedPreset.algorithm.charAt(0).toUpperCase() + selectedPreset.algorithm.slice(1).replace('-', ' ')} algorithm
+            {selectedPreset.saturation > 1 && ` • +${Math.round((selectedPreset.saturation - 1) * 100)}% saturation`}
+            {selectedPreset.denoise && ' • Noise reduction'}
+            {selectedPreset.sharpen && ' • Sharpening'}
+          </p>
+        </div>
+      </div>
+
       {/* Category Selection */}
       <div>
         <label htmlFor="category" className="ink-label">
-          Category
+          Save to Category
         </label>
         <select
           id="category"
@@ -94,17 +162,11 @@ export default function ProcessingForm({
             </option>
           ))}
         </select>
-        <p className="text-xs text-white/40 mt-1.5">
-          Images will be organized into this category
-        </p>
       </div>
 
       {/* Device Selection */}
       <div>
-        <label className="ink-label">Devices</label>
-        <p className="text-xs text-white/40 mb-3">
-          Select which devices to create images for
-        </p>
+        <label className="ink-label">Target Devices</label>
         
         {devices.length === 0 ? (
           <div className="p-4 rounded-xl bg-black/20 border border-white/10 text-center">
@@ -129,7 +191,7 @@ export default function ProcessingForm({
               return (
                 <label
                   key={device.id}
-                  className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 ${
+                  className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 ${
                     isSelected
                       ? 'bg-[#ff47b3]/20 border border-[#ff47b3]/40'
                       : 'bg-black/20 border border-white/10 hover:border-white/20'
@@ -140,24 +202,22 @@ export default function ProcessingForm({
                     checked={isSelected}
                     onChange={() => handleDeviceToggle(device.id)}
                     disabled={isProcessing}
-                    className="mt-1 accent-[#ff47b3]"
+                    className="accent-[#ff47b3]"
                   />
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      isSelected 
-                        ? 'bg-gradient-to-br from-[#ff47b3] to-[#a855f7]' 
-                        : 'bg-white/10'
-                    }`}>
-                      <Monitor className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-white">{device.name}</p>
-                      {display && (
-                        <p className="text-xs text-white/50">
-                          {display.name} • {display.width}×{display.height} • {display.palette.length} colors
-                        </p>
-                      )}
-                    </div>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    isSelected 
+                      ? 'bg-gradient-to-br from-[#ff47b3] to-[#a855f7]' 
+                      : 'bg-white/10'
+                  }`}>
+                    <Monitor className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-white text-sm">{device.name}</p>
+                    {display && (
+                      <p className="text-xs text-white/50">
+                        {display.width}×{display.height} • {display.palette.length} colors
+                      </p>
+                    )}
                   </div>
                 </label>
               );
@@ -166,187 +226,84 @@ export default function ProcessingForm({
         )}
       </div>
 
-      {/* Image Fit Mode */}
-      <div>
-        <label className="ink-label">Image Fit Mode</label>
-        <p className="text-xs text-white/40 mb-3">
-          How should the image fit into the frame?
-        </p>
-        <div className="space-y-2">
-          {FIT_MODE_OPTIONS.map((option) => {
-            const isSelected = enhancement.fitMode === option.value;
-            return (
-              <label
-                key={option.value}
-                className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 ${
-                  isSelected
-                    ? 'bg-[#a855f7]/20 border border-[#a855f7]/40'
-                    : 'bg-black/20 border border-white/10 hover:border-white/20'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="fitMode"
-                  value={option.value}
-                  checked={isSelected}
-                  onChange={() => setEnhancement({ ...enhancement, fitMode: option.value })}
-                  disabled={isProcessing}
-                  className="mt-1 accent-[#a855f7]"
-                />
-                <div className="flex-1">
-                  <p className="font-medium text-white">{option.label}</p>
-                  <p className="text-xs text-white/50">{option.description}</p>
-                </div>
-              </label>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Dithering Algorithm */}
-      <div>
-        <label htmlFor="dithering" className="ink-label">
-          Dithering Algorithm
-        </label>
-        <select
-          id="dithering"
-          value={dithering}
-          onChange={(e) => setDithering(e.target.value as DitheringAlgorithm)}
-          className="ink-input"
-          disabled={isProcessing}
-        >
-          {DITHERING_ALGORITHMS.map((algo) => (
-            <option key={algo} value={algo}>
-              {algo.charAt(0).toUpperCase() + algo.slice(1).replace('-', ' ')}
-            </option>
-          ))}
-        </select>
-        <p className="text-xs text-white/40 mt-1.5">
-          Floyd-Steinberg works best for most photos
-        </p>
-      </div>
-
-      {/* Advanced Enhancement Options */}
+      {/* Advanced Options (collapsed) */}
       <div>
         <button
           type="button"
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors"
+          className="flex items-center gap-2 text-sm text-white/50 hover:text-white/70 transition-colors"
         >
           {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          Image Enhancement Options
+          Advanced Options
         </button>
         
         {showAdvanced && (
           <div className="mt-3 p-4 rounded-xl bg-black/20 border border-white/10 space-y-4">
-            {/* Auto Contrast */}
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={enhancement.autoContrast}
-                onChange={(e) => setEnhancement({ ...enhancement, autoContrast: e.target.checked })}
-                disabled={isProcessing}
-                className="w-4 h-4 accent-[#ff47b3]"
-              />
-              <div>
-                <p className="font-medium text-white text-sm">Auto Contrast</p>
-                <p className="text-xs text-white/40">Automatically adjust contrast and levels</p>
-              </div>
-            </label>
-
-            {/* Saturation */}
+            {/* Fit Mode */}
             <div>
-              <label className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-white">Saturation Boost</span>
-                <span className="text-xs text-white/50">{Math.round((enhancement.saturation - 1) * 100)}%</span>
-              </label>
-              <input
-                type="range"
-                min="0.5"
-                max="2"
-                step="0.1"
-                value={enhancement.saturation}
-                onChange={(e) => setEnhancement({ ...enhancement, saturation: parseFloat(e.target.value) })}
-                disabled={isProcessing}
-                className="w-full accent-[#ff47b3]"
-              />
-              <p className="text-xs text-white/40 mt-1">Boost colors for better e-ink display</p>
-            </div>
-
-            {/* Denoise */}
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={enhancement.denoise}
-                onChange={(e) => setEnhancement({ ...enhancement, denoise: e.target.checked })}
-                disabled={isProcessing}
-                className="w-4 h-4 accent-[#ff47b3]"
-              />
-              <div>
-                <p className="font-medium text-white text-sm">Noise Reduction</p>
-                <p className="text-xs text-white/40">Reduces speckling in gradients</p>
-              </div>
-            </label>
-
-            {/* Sharpen */}
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={enhancement.sharpen}
-                onChange={(e) => setEnhancement({ ...enhancement, sharpen: e.target.checked })}
-                disabled={isProcessing}
-                className="w-4 h-4 accent-[#ff47b3]"
-              />
-              <div>
-                <p className="font-medium text-white text-sm">Sharpen</p>
-                <p className="text-xs text-white/40">Restore edge clarity after noise reduction</p>
-              </div>
-            </label>
-
-            {/* Background Color for Letterboxing */}
-            <div>
-              <label className="flex items-center justify-between mb-2">
-                <div>
-                  <p className="text-sm font-medium text-white">Letterbox Background</p>
-                  <p className="text-xs text-white/40">Color for bars in contain/smart mode</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={enhancement.backgroundColor}
-                    onChange={(e) => setEnhancement({ ...enhancement, backgroundColor: e.target.value })}
-                    disabled={isProcessing}
-                    className="w-8 h-8 rounded-lg cursor-pointer border border-white/20 bg-transparent"
-                  />
-                  <span className="text-xs font-mono text-white/50">{enhancement.backgroundColor}</span>
-                </div>
-              </label>
-              <div className="flex gap-2 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setEnhancement({ ...enhancement, backgroundColor: '#FFFFFF' })}
-                  className="text-xs px-3 py-1.5 bg-white text-black rounded-lg hover:bg-white/90 transition-colors"
-                >
-                  White
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEnhancement({ ...enhancement, backgroundColor: '#000000' })}
-                  className="text-xs px-3 py-1.5 bg-black text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors"
-                >
-                  Black
-                </button>
+              <label className="text-sm font-medium text-white mb-2 block">Image Fit Mode</label>
+              <div className="space-y-2">
+                {FIT_MODE_OPTIONS.map((option) => {
+                  const isSelected = fitMode === option.value;
+                  return (
+                    <label
+                      key={option.value}
+                      className={`flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-all ${
+                        isSelected
+                          ? 'bg-[#a855f7]/20 border border-[#a855f7]/40'
+                          : 'bg-black/10 border border-transparent hover:border-white/10'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="fitMode"
+                        value={option.value}
+                        checked={isSelected}
+                        onChange={() => setFitMode(option.value)}
+                        disabled={isProcessing}
+                        className="mt-0.5 accent-[#a855f7]"
+                      />
+                      <div>
+                        <p className="font-medium text-white text-sm">{option.label}</p>
+                        <p className="text-xs text-white/40">{option.description}</p>
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Reset to defaults */}
-            <button
-              type="button"
-              onClick={() => setEnhancement(DEFAULT_ENHANCEMENT_OPTIONS)}
-              className="text-xs text-[#ff47b3] hover:text-[#22d3ee] transition-colors"
-            >
-              Reset to recommended settings
-            </button>
+            {/* Background Color */}
+            <div>
+              <label className="text-sm font-medium text-white mb-2 block">
+                Letterbox Background
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={backgroundColor}
+                  onChange={(e) => setBackgroundColor(e.target.value)}
+                  disabled={isProcessing}
+                  className="w-10 h-10 rounded-lg cursor-pointer border border-white/20 bg-transparent"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBackgroundColor('#FFFFFF')}
+                    className="text-xs px-3 py-1.5 bg-white text-black rounded-lg hover:bg-white/90 transition-colors"
+                  >
+                    White
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBackgroundColor('#000000')}
+                    className="text-xs px-3 py-1.5 bg-black text-white border border-white/20 rounded-lg hover:bg-white/10 transition-colors"
+                  >
+                    Black
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -382,10 +339,11 @@ export default function ProcessingForm({
             Processing...
           </span>
         ) : (
-          'Process Images'
+          `Process as ${selectedPreset.label}`
         )}
       </button>
 
+      {/* Help text */}
       {!hasFiles && (
         <p className="text-sm text-white/40 text-center">
           Upload images above to enable processing
