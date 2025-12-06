@@ -2,18 +2,21 @@ import { getCategoriesWithCounts } from '@/lib/utils/categories';
 import { getDisplayProfiles } from '@/lib/displays/profiles';
 import { getAllImages } from '@/lib/utils/image';
 import { getDevices } from '@/lib/utils/devices';
+import { checkAndSetupApiKey } from '@/lib/utils/setup';
 import Link from 'next/link';
 import { Upload, Image, Layers, Monitor, Sparkles, ArrowRight, Zap } from 'lucide-react';
+import ApiKeySetup from '@/components/ApiKeySetup';
 
 /**
  * Admin Dashboard - Overview of the image library
  */
 export default async function AdminDashboard() {
-  const [categories, displays, images, devices] = await Promise.all([
+  const [categories, displays, images, devices, setupStatus] = await Promise.all([
     getCategoriesWithCounts(),
     getDisplayProfiles(),
     getAllImages(),
     getDevices(),
+    checkAndSetupApiKey(),
   ]);
 
   const totalImages = images.length;
@@ -30,6 +33,14 @@ export default async function AdminDashboard() {
           Here&apos;s what&apos;s happening with your InkyStream library
         </p>
       </div>
+
+      {/* API Key Setup - Show prominently if newly generated */}
+      {setupStatus.apiKey && (
+        <ApiKeySetup 
+          apiKey={setupStatus.apiKey} 
+          isNewlyGenerated={setupStatus.isNewlyGenerated} 
+        />
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
