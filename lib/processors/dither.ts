@@ -312,17 +312,16 @@ export function colorDistance(c1: RGB, c2: RGB): number {
 }
 
 /**
- * Find the nearest color in the palette using OKLab perceptual color matching
- * OKLab provides superior perceptual uniformity compared to CIELAB
+ * Find the nearest color in the palette using CIELAB perceptual color matching
+ * Using CIELAB (CIE76) as it provides reliable results for limited e-ink palettes
  */
 export function findNearestColor(color: RGB, palette: RGB[]): RGB {
-  const colorOklab = rgbToOklab(color);
   let minDistance = Infinity;
   let nearest = palette[0];
 
   for (const paletteColor of palette) {
-    const paletteOklab = rgbToOklab(paletteColor);
-    const distance = oklabDistance(colorOklab, paletteOklab);
+    // Use CIELAB perceptual color distance for reliable matching
+    const distance = perceptualColorDistance(color, paletteColor);
     if (distance < minDistance) {
       minDistance = distance;
       nearest = paletteColor;
@@ -494,8 +493,9 @@ export function applyClahe(
       ) / 255;
       
       // Apply luminance change to RGB while preserving color
-      const oldLum = lum || 0.001;
-      const ratio = newLum / oldLum;
+      // Clamp ratio to prevent extreme brightening/darkening
+      const oldLum = Math.max(lum, 0.01);  // Avoid division by very small numbers
+      const ratio = Math.min(Math.max(newLum / oldLum, 0.5), 2.0);  // Limit ratio to 0.5-2.0
       
       output[pixelIdx] = clamp(pixels[pixelIdx] * ratio);
       output[pixelIdx + 1] = clamp(pixels[pixelIdx + 1] * ratio);
@@ -664,7 +664,7 @@ export function clamp(value: number): number {
 
 /**
  * Apply Floyd-Steinberg dithering to raw pixel data
- * Uses serpentine scanning and OKLab color matching for better results
+ * Uses serpentine scanning for better results
  * Error diffusion pattern:
  *       X   7/16
  * 3/16  5/16  1/16
@@ -676,9 +676,6 @@ export function applyFloydSteinberg(
   palette: RGB[]
 ): Uint8ClampedArray {
   const output = new Uint8ClampedArray(pixels);
-  
-  // Pre-compute OKLab palette for faster matching
-  const paletteOklab = precomputePaletteOklab(palette);
 
   for (let y = 0; y < height; y++) {
     // Serpentine scanning: alternate direction each row to reduce banding
@@ -697,11 +694,9 @@ export function applyFloydSteinberg(
         g: output[idx + 1],
         b: output[idx + 2],
       };
-      const oldOklab = rgbToOklab(oldColor);
 
-      // Find nearest palette color using OKLab
-      const nearest = findNearestColorFast(oldOklab, paletteOklab);
-      const newColor = nearest.rgb;
+      // Find nearest palette color using CIELAB distance
+      const newColor = findNearestColor(oldColor, palette);
 
       // Set new color
       output[idx] = newColor.r;
@@ -774,9 +769,6 @@ export function applyStucki(
   palette: RGB[]
 ): Uint8ClampedArray {
   const output = new Uint8ClampedArray(pixels);
-  
-  // Pre-compute OKLab palette for faster matching
-  const paletteOklab = precomputePaletteOklab(palette);
 
   for (let y = 0; y < height; y++) {
     // Serpentine scanning: alternate direction each row to eliminate worm artifacts
@@ -789,17 +781,15 @@ export function applyStucki(
     for (let x = startX; x !== endX; x += stepX) {
       const idx = (y * width + x) * 4;
 
-      // Get current pixel color and convert to OKLab
+      // Get current pixel color
       const oldColor: RGB = {
         r: output[idx],
         g: output[idx + 1],
         b: output[idx + 2],
       };
-      const oldOklab = rgbToOklab(oldColor);
 
-      // Find nearest palette color using OKLab distance
-      const nearest = findNearestColorFast(oldOklab, paletteOklab);
-      const newColor = nearest.rgb;
+      // Find nearest palette color using CIELAB distance
+      const newColor = findNearestColor(oldColor, palette);
 
       // Set new color
       output[idx] = newColor.r;
@@ -867,9 +857,6 @@ export function applyAtkinson(
   palette: RGB[]
 ): Uint8ClampedArray {
   const output = new Uint8ClampedArray(pixels);
-  
-  // Pre-compute OKLab palette for faster matching
-  const paletteOklab = precomputePaletteOklab(palette);
 
   for (let y = 0; y < height; y++) {
     // Serpentine scanning: alternate direction each row to eliminate worm artifacts
@@ -887,11 +874,9 @@ export function applyAtkinson(
         g: output[idx + 1],
         b: output[idx + 2],
       };
-      const oldOklab = rgbToOklab(oldColor);
 
-      // Find nearest palette color using OKLab
-      const nearest = findNearestColorFast(oldOklab, paletteOklab);
-      const newColor = nearest.rgb;
+      // Find nearest palette color using CIELAB distance
+      const newColor = findNearestColor(oldColor, palette);
 
       output[idx] = newColor.r;
       output[idx + 1] = newColor.g;
@@ -1130,12 +1115,13 @@ export async function processWithDithering(
 
   // 1. Apply CLAHE for superior local contrast enhancement
   // Better than global normalize for photos with uneven lighting
+  // Note: CLAHE is disabled by default as it can cause over-brightening
   if (enhancement.useClahe) {
     pixels = applyClahe(
       pixels,
       info.width,
       info.height,
-      enhancement.claheClipLimit ?? 2.5,
+      enhancement.claheClipLimit ?? 2.0,
       enhancement.claheTileSize ?? 8
     );
   }

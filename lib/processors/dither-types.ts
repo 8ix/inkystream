@@ -96,17 +96,17 @@ export interface EnhancementOptions {
 
 export const DEFAULT_ENHANCEMENT_OPTIONS: EnhancementOptions = {
   autoContrast: true,
-  useClahe: true,
-  claheClipLimit: 2.5,
+  useClahe: false,  // Disabled by default - can cause over-brightening
+  claheClipLimit: 2.0,  // Conservative clip limit
   claheTileSize: 8,
-  saturation: 1.4,  // Increased from 1.2 - e-ink mutes colors significantly
+  saturation: 1.3,  // Moderate boost - 1.4 was too aggressive
   denoise: true,
-  useBilateral: true,
+  useBilateral: false,  // Disabled by default - slower and can cause issues
   bilateralSigmaSpace: 6,
   bilateralSigmaRange: 0.12,
   sharpen: true,
   fitMode: 'smart',
   backgroundColor: '#FFFFFF',
-  displayGamma: 1.85,  // E-ink displays are typically darker than sRGB (2.2)
+  displayGamma: 2.2,  // Disabled by default (2.2 = no change from sRGB)
 };
 
