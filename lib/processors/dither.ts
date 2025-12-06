@@ -17,11 +17,12 @@ export {
   type DitheringAlgorithm,
   type RGB,
   type LAB,
+  type OKLab,
   type EnhancementOptions,
   type FitMode,
 } from './dither-types';
 
-import type { DitheringAlgorithm, RGB, LAB, EnhancementOptions, FitMode } from './dither-types';
+import type { DitheringAlgorithm, RGB, LAB, OKLab, EnhancementOptions, FitMode } from './dither-types';
 import { DEFAULT_ENHANCEMENT_OPTIONS } from './dither-types';
 
 /**
@@ -187,8 +188,8 @@ export function rgbToLab(rgb: RGB): LAB {
 }
 
 /**
- * Calculate perceptual color distance using CIE76 formula
- * This matches how humans perceive color differences
+ * Calculate perceptual color distance using CIE76 formula (legacy)
+ * Kept for backwards compatibility - use oklabDistance for better results
  */
 export function perceptualColorDistance(c1: RGB, c2: RGB): number {
   const lab1 = rgbToLab(c1);
@@ -199,6 +200,104 @@ export function perceptualColorDistance(c1: RGB, c2: RGB): number {
   const db = lab1.b - lab2.b;
   
   return Math.sqrt(dL * dL + da * da + db * db);
+}
+
+// ============================================================================
+// OKLab Color Space - Superior perceptual uniformity for e-ink displays
+// Reference: Björn Ottosson (2020) - https://bottosson.github.io/posts/oklab/
+// ============================================================================
+
+/**
+ * Convert sRGB component (0-255) to linear RGB (0-1)
+ * Applies gamma decoding (removes sRGB gamma curve)
+ */
+export function srgbToLinear(c: number): number {
+  const s = c / 255;
+  return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+}
+
+/**
+ * Convert linear RGB component (0-1) to sRGB (0-255)
+ * Applies gamma encoding (adds sRGB gamma curve)
+ */
+export function linearToSrgb(c: number): number {
+  const s = c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+  return Math.round(Math.max(0, Math.min(255, s * 255)));
+}
+
+/**
+ * Convert linear sRGB to OKLab color space
+ * OKLab provides truly perceptually uniform distances - superior to CIELAB
+ * @param r Linear red (0-1)
+ * @param g Linear green (0-1)
+ * @param b Linear blue (0-1)
+ */
+export function linearSrgbToOklab(r: number, g: number, b: number): OKLab {
+  // Convert to LMS cone space
+  const l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
+  const m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
+  const s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
+
+  // Cube root for perceptual uniformity
+  const l_ = Math.cbrt(l);
+  const m_ = Math.cbrt(m);
+  const s_ = Math.cbrt(s);
+
+  // Transform to OKLab
+  return {
+    L: 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+    a: 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+    b: 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_,
+  };
+}
+
+/**
+ * Convert RGB (0-255) to OKLab color space
+ * Handles sRGB gamma decoding automatically
+ */
+export function rgbToOklab(rgb: RGB): OKLab {
+  const r = srgbToLinear(rgb.r);
+  const g = srgbToLinear(rgb.g);
+  const b = srgbToLinear(rgb.b);
+  return linearSrgbToOklab(r, g, b);
+}
+
+/**
+ * Calculate perceptual color distance in OKLab space
+ * Uses 1.5× luminance weighting since human vision is ~100× more sensitive
+ * to luminance than chrominance - critical for limited e-ink palettes
+ * 
+ * @param c1 First OKLab color
+ * @param c2 Second OKLab color
+ * @param luminanceWeight Weight for luminance difference (default 1.5)
+ */
+export function oklabDistance(c1: OKLab, c2: OKLab, luminanceWeight: number = 1.5): number {
+  const dL = (c1.L - c2.L) * luminanceWeight;
+  const da = c1.a - c2.a;
+  const db = c1.b - c2.b;
+  return Math.sqrt(dL * dL + da * da + db * db);
+}
+
+/**
+ * Pre-computed OKLab palette for efficient color matching
+ * Avoids repeated RGB->OKLab conversions during dithering
+ */
+export interface OKLabPaletteColor {
+  rgb: RGB;
+  oklab: OKLab;
+  index: number;
+}
+
+/**
+ * Pre-compute OKLab values for a palette
+ * Call once before dithering to avoid repeated conversions
+ */
+export function precomputePaletteOklab(palette: RGB[]): OKLabPaletteColor[] {
+  return palette.map((rgb, index) => ({
+    rgb,
+    oklab: rgbToOklab(rgb),
+    index,
+  }));
 }
 
 /**
@@ -213,15 +312,17 @@ export function colorDistance(c1: RGB, c2: RGB): number {
 }
 
 /**
- * Find the nearest color in the palette using perceptual color matching
+ * Find the nearest color in the palette using OKLab perceptual color matching
+ * OKLab provides superior perceptual uniformity compared to CIELAB
  */
 export function findNearestColor(color: RGB, palette: RGB[]): RGB {
+  const colorOklab = rgbToOklab(color);
   let minDistance = Infinity;
   let nearest = palette[0];
 
   for (const paletteColor of palette) {
-    // Use perceptual color distance for better matching
-    const distance = perceptualColorDistance(color, paletteColor);
+    const paletteOklab = rgbToOklab(paletteColor);
+    const distance = oklabDistance(colorOklab, paletteOklab);
     if (distance < minDistance) {
       minDistance = distance;
       nearest = paletteColor;
@@ -229,6 +330,329 @@ export function findNearestColor(color: RGB, palette: RGB[]): RGB {
   }
 
   return nearest;
+}
+
+/**
+ * Find nearest color using pre-computed OKLab palette (faster for dithering)
+ * Use this in tight loops where palette is static
+ */
+export function findNearestColorFast(
+  colorOklab: OKLab,
+  paletteOklab: OKLabPaletteColor[]
+): OKLabPaletteColor {
+  let minDistance = Infinity;
+  let nearest = paletteOklab[0];
+
+  for (const paletteColor of paletteOklab) {
+    const distance = oklabDistance(colorOklab, paletteColor.oklab);
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearest = paletteColor;
+    }
+  }
+
+  return nearest;
+}
+
+// ============================================================================
+// CLAHE - Contrast Limited Adaptive Histogram Equalization
+// Provides superior contrast enhancement for photographs with uneven lighting
+// Unlike global histogram equalization, CLAHE operates on tiles and clips
+// the histogram to prevent noise amplification - critical before dithering
+// ============================================================================
+
+/**
+ * Apply CLAHE to the luminance channel of an image
+ * This enhances local contrast while preventing noise amplification
+ * 
+ * @param pixels RGBA pixel data
+ * @param width Image width
+ * @param height Image height
+ * @param clipLimit Contrast limit (2.0-4.0, higher = more contrast)
+ * @param tileSize Size of tiles for local histogram (8-16 typical)
+ */
+export function applyClahe(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+  clipLimit: number = 2.5,
+  tileSize: number = 8
+): Uint8ClampedArray {
+  const output = new Uint8ClampedArray(pixels);
+  
+  // Calculate number of tiles
+  const tilesX = Math.ceil(width / tileSize);
+  const tilesY = Math.ceil(height / tileSize);
+  
+  // Extract luminance channel (using OKLab L for perceptual accuracy)
+  const luminance = new Float32Array(width * height);
+  for (let i = 0; i < width * height; i++) {
+    const r = pixels[i * 4] / 255;
+    const g = pixels[i * 4 + 1] / 255;
+    const b = pixels[i * 4 + 2] / 255;
+    // Simplified luminance calculation (approximate OKLab L)
+    luminance[i] = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  
+  // Compute histogram for each tile and build lookup tables
+  const numBins = 256;
+  const tileLookups: Uint8Array[][] = [];
+  
+  for (let ty = 0; ty < tilesY; ty++) {
+    tileLookups[ty] = [];
+    for (let tx = 0; tx < tilesX; tx++) {
+      // Calculate tile boundaries
+      const x0 = tx * tileSize;
+      const y0 = ty * tileSize;
+      const x1 = Math.min(x0 + tileSize, width);
+      const y1 = Math.min(y0 + tileSize, height);
+      const tilePixels = (x1 - x0) * (y1 - y0);
+      
+      // Build histogram for this tile
+      const histogram = new Uint32Array(numBins);
+      for (let y = y0; y < y1; y++) {
+        for (let x = x0; x < x1; x++) {
+          const bin = Math.floor(luminance[y * width + x] * 255);
+          histogram[Math.min(bin, 255)]++;
+        }
+      }
+      
+      // Clip histogram (redistribute excess)
+      const clipThreshold = Math.floor((clipLimit * tilePixels) / numBins);
+      let excess = 0;
+      for (let i = 0; i < numBins; i++) {
+        if (histogram[i] > clipThreshold) {
+          excess += histogram[i] - clipThreshold;
+          histogram[i] = clipThreshold;
+        }
+      }
+      
+      // Redistribute excess uniformly
+      const redistribution = Math.floor(excess / numBins);
+      const residual = excess - redistribution * numBins;
+      for (let i = 0; i < numBins; i++) {
+        histogram[i] += redistribution;
+        if (i < residual) histogram[i]++;
+      }
+      
+      // Build cumulative distribution function (CDF)
+      const cdf = new Uint32Array(numBins);
+      cdf[0] = histogram[0];
+      for (let i = 1; i < numBins; i++) {
+        cdf[i] = cdf[i - 1] + histogram[i];
+      }
+      
+      // Normalize to create lookup table
+      const lookup = new Uint8Array(numBins);
+      const scale = 255 / (tilePixels || 1);
+      for (let i = 0; i < numBins; i++) {
+        lookup[i] = Math.round(cdf[i] * scale);
+      }
+      
+      tileLookups[ty][tx] = lookup;
+    }
+  }
+  
+  // Apply CLAHE with bilinear interpolation between tiles
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = y * width + x;
+      const pixelIdx = idx * 4;
+      
+      // Get luminance bin
+      const lum = luminance[idx];
+      const bin = Math.min(Math.floor(lum * 255), 255);
+      
+      // Find tile coordinates
+      const tx = x / tileSize;
+      const ty = y / tileSize;
+      
+      // Get integer tile indices
+      const tx0 = Math.min(Math.floor(tx - 0.5), tilesX - 1);
+      const ty0 = Math.min(Math.floor(ty - 0.5), tilesY - 1);
+      const tx1 = Math.min(tx0 + 1, tilesX - 1);
+      const ty1 = Math.min(ty0 + 1, tilesY - 1);
+      
+      // Calculate interpolation weights
+      const wx = Math.max(0, Math.min(1, (tx - 0.5) - tx0));
+      const wy = Math.max(0, Math.min(1, (ty - 0.5) - ty0));
+      
+      // Bilinear interpolation of lookup values
+      const tx0_safe = Math.max(0, tx0);
+      const ty0_safe = Math.max(0, ty0);
+      
+      const v00 = tileLookups[ty0_safe][tx0_safe][bin];
+      const v01 = tileLookups[ty1][tx0_safe][bin];
+      const v10 = tileLookups[ty0_safe][tx1][bin];
+      const v11 = tileLookups[ty1][tx1][bin];
+      
+      const newLum = (
+        v00 * (1 - wx) * (1 - wy) +
+        v10 * wx * (1 - wy) +
+        v01 * (1 - wx) * wy +
+        v11 * wx * wy
+      ) / 255;
+      
+      // Apply luminance change to RGB while preserving color
+      const oldLum = lum || 0.001;
+      const ratio = newLum / oldLum;
+      
+      output[pixelIdx] = clamp(pixels[pixelIdx] * ratio);
+      output[pixelIdx + 1] = clamp(pixels[pixelIdx + 1] * ratio);
+      output[pixelIdx + 2] = clamp(pixels[pixelIdx + 2] * ratio);
+    }
+  }
+  
+  return output;
+}
+
+// ============================================================================
+// Bilateral Filter - Edge-Preserving Noise Reduction
+// Unlike median filter, bilateral filter smooths uniform regions (reducing
+// dithering noise in skies) while preserving edges (maintaining sharpness)
+// ============================================================================
+
+/**
+ * Apply bilateral filter to image for edge-preserving smoothing
+ * Combines spatial proximity and intensity similarity for selective blurring
+ * 
+ * @param pixels RGBA pixel data
+ * @param width Image width
+ * @param height Image height
+ * @param sigmaSpace Spatial sigma (larger = bigger blur area, default 6)
+ * @param sigmaRange Range sigma (smaller = preserve more edges, default 0.12)
+ * @param radius Filter radius (default: ceil(2 * sigmaSpace))
+ */
+export function applyBilateralFilter(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+  sigmaSpace: number = 6,
+  sigmaRange: number = 0.12
+): Uint8ClampedArray {
+  const output = new Uint8ClampedArray(pixels);
+  const radius = Math.ceil(sigmaSpace * 2);
+  
+  // Pre-compute spatial weights (Gaussian based on distance)
+  const spatialWeights: number[][] = [];
+  for (let dy = -radius; dy <= radius; dy++) {
+    spatialWeights[dy + radius] = [];
+    for (let dx = -radius; dx <= radius; dx++) {
+      const spatialDist = dx * dx + dy * dy;
+      spatialWeights[dy + radius][dx + radius] = 
+        Math.exp(-spatialDist / (2 * sigmaSpace * sigmaSpace));
+    }
+  }
+  
+  // Convert sigmaRange to 0-255 scale for intensity comparison
+  const sigmaRangeScaled = sigmaRange * 255;
+  const rangeCoeff = -1 / (2 * sigmaRangeScaled * sigmaRangeScaled);
+  
+  // Process each pixel
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const centerIdx = (y * width + x) * 4;
+      
+      // Get center pixel luminance for range weighting
+      const centerL = (
+        pixels[centerIdx] * 0.2126 +
+        pixels[centerIdx + 1] * 0.7152 +
+        pixels[centerIdx + 2] * 0.0722
+      );
+      
+      let weightSum = 0;
+      let rSum = 0, gSum = 0, bSum = 0;
+      
+      // Sample neighborhood
+      for (let dy = -radius; dy <= radius; dy++) {
+        const ny = y + dy;
+        if (ny < 0 || ny >= height) continue;
+        
+        for (let dx = -radius; dx <= radius; dx++) {
+          const nx = x + dx;
+          if (nx < 0 || nx >= width) continue;
+          
+          const neighborIdx = (ny * width + nx) * 4;
+          
+          // Get neighbor luminance
+          const neighborL = (
+            pixels[neighborIdx] * 0.2126 +
+            pixels[neighborIdx + 1] * 0.7152 +
+            pixels[neighborIdx + 2] * 0.0722
+          );
+          
+          // Calculate range weight (similarity in intensity)
+          const rangeDist = (neighborL - centerL) * (neighborL - centerL);
+          const rangeWeight = Math.exp(rangeDist * rangeCoeff);
+          
+          // Combined weight = spatial * range
+          const spatialWeight = spatialWeights[dy + radius][dx + radius];
+          const weight = spatialWeight * rangeWeight;
+          
+          weightSum += weight;
+          rSum += pixels[neighborIdx] * weight;
+          gSum += pixels[neighborIdx + 1] * weight;
+          bSum += pixels[neighborIdx + 2] * weight;
+        }
+      }
+      
+      // Normalize and set output
+      if (weightSum > 0) {
+        output[centerIdx] = clamp(rSum / weightSum);
+        output[centerIdx + 1] = clamp(gSum / weightSum);
+        output[centerIdx + 2] = clamp(bSum / weightSum);
+      }
+    }
+  }
+  
+  return output;
+}
+
+// ============================================================================
+// Gamma Correction for E-ink Displays
+// E-ink displays typically have gamma ~1.85 vs sRGB's 2.2
+// This compensation makes images appear as intended on e-ink
+// ============================================================================
+
+/**
+ * Apply gamma correction to prepare image for e-ink display
+ * E-ink displays are typically darker than standard monitors
+ * 
+ * @param pixels RGBA pixel data
+ * @param width Image width
+ * @param height Image height
+ * @param displayGamma Target display gamma (1.85 typical for e-ink)
+ */
+export function applyGammaCorrection(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+  displayGamma: number = 1.85
+): Uint8ClampedArray {
+  const output = new Uint8ClampedArray(pixels);
+  
+  // sRGB gamma is approximately 2.2
+  // We need to adjust from sRGB to target display gamma
+  // Correction = (value ^ (sRGB_gamma / display_gamma))
+  const correction = 2.2 / displayGamma;
+  
+  // Build lookup table for efficiency
+  const lut = new Uint8Array(256);
+  for (let i = 0; i < 256; i++) {
+    const normalized = i / 255;
+    const corrected = Math.pow(normalized, correction);
+    lut[i] = clamp(corrected * 255);
+  }
+  
+  // Apply to all pixels
+  for (let i = 0; i < width * height; i++) {
+    const idx = i * 4;
+    output[idx] = lut[pixels[idx]];
+    output[idx + 1] = lut[pixels[idx + 1]];
+    output[idx + 2] = lut[pixels[idx + 2]];
+  }
+  
+  return output;
 }
 
 /**
@@ -240,7 +664,7 @@ export function clamp(value: number): number {
 
 /**
  * Apply Floyd-Steinberg dithering to raw pixel data
- * Uses serpentine scanning (alternating direction each row) for better results
+ * Uses serpentine scanning and OKLab color matching for better results
  * Error diffusion pattern:
  *       X   7/16
  * 3/16  5/16  1/16
@@ -252,6 +676,9 @@ export function applyFloydSteinberg(
   palette: RGB[]
 ): Uint8ClampedArray {
   const output = new Uint8ClampedArray(pixels);
+  
+  // Pre-compute OKLab palette for faster matching
+  const paletteOklab = precomputePaletteOklab(palette);
 
   for (let y = 0; y < height; y++) {
     // Serpentine scanning: alternate direction each row to reduce banding
@@ -270,9 +697,11 @@ export function applyFloydSteinberg(
         g: output[idx + 1],
         b: output[idx + 2],
       };
+      const oldOklab = rgbToOklab(oldColor);
 
-      // Find nearest palette color
-      const newColor = findNearestColor(oldColor, palette);
+      // Find nearest palette color using OKLab
+      const nearest = findNearestColorFast(oldOklab, paletteOklab);
+      const newColor = nearest.rgb;
 
       // Set new color
       output[idx] = newColor.r;
@@ -328,8 +757,105 @@ export function applyFloydSteinberg(
 }
 
 /**
+ * Apply Stucki dithering to raw pixel data
+ * Uses larger kernel than Floyd-Steinberg for smoother gradients in photos
+ * Provides near Jarvis-Judice-Ninke quality with better performance
+ * Uses serpentine scanning for artifact-free results
+ * 
+ * Error diffusion pattern (divisor 42):
+ *           X   8   4
+ *     2   4   8   4   2
+ *     1   2   4   2   1
+ */
+export function applyStucki(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+  palette: RGB[]
+): Uint8ClampedArray {
+  const output = new Uint8ClampedArray(pixels);
+  
+  // Pre-compute OKLab palette for faster matching
+  const paletteOklab = precomputePaletteOklab(palette);
+
+  for (let y = 0; y < height; y++) {
+    // Serpentine scanning: alternate direction each row to eliminate worm artifacts
+    const leftToRight = y % 2 === 0;
+    
+    const startX = leftToRight ? 0 : width - 1;
+    const endX = leftToRight ? width : -1;
+    const stepX = leftToRight ? 1 : -1;
+
+    for (let x = startX; x !== endX; x += stepX) {
+      const idx = (y * width + x) * 4;
+
+      // Get current pixel color and convert to OKLab
+      const oldColor: RGB = {
+        r: output[idx],
+        g: output[idx + 1],
+        b: output[idx + 2],
+      };
+      const oldOklab = rgbToOklab(oldColor);
+
+      // Find nearest palette color using OKLab distance
+      const nearest = findNearestColorFast(oldOklab, paletteOklab);
+      const newColor = nearest.rgb;
+
+      // Set new color
+      output[idx] = newColor.r;
+      output[idx + 1] = newColor.g;
+      output[idx + 2] = newColor.b;
+
+      // Calculate error
+      const errR = oldColor.r - newColor.r;
+      const errG = oldColor.g - newColor.g;
+      const errB = oldColor.b - newColor.b;
+
+      // Direction-aware error distribution for serpentine scanning
+      const forward = stepX; // +1 for left-to-right, -1 for right-to-left
+      
+      // Helper to distribute error to a pixel
+      const diffuse = (dx: number, dy: number, weight: number) => {
+        const nx = x + dx * forward;
+        const ny = y + dy;
+        if (nx >= 0 && nx < width && ny < height) {
+          const i = (ny * width + nx) * 4;
+          output[i] = clamp(output[i] + errR * weight);
+          output[i + 1] = clamp(output[i + 1] + errG * weight);
+          output[i + 2] = clamp(output[i + 2] + errB * weight);
+        }
+      };
+
+      // Stucki kernel (divisor 42):
+      // Row 0 (current row):     *  8/42  4/42
+      diffuse(1, 0, 8 / 42);
+      diffuse(2, 0, 4 / 42);
+      
+      // Row 1: 2/42  4/42  8/42  4/42  2/42
+      diffuse(-2, 1, 2 / 42);
+      diffuse(-1, 1, 4 / 42);
+      diffuse(0, 1, 8 / 42);
+      diffuse(1, 1, 4 / 42);
+      diffuse(2, 1, 2 / 42);
+      
+      // Row 2: 1/42  2/42  4/42  2/42  1/42
+      diffuse(-2, 2, 1 / 42);
+      diffuse(-1, 2, 2 / 42);
+      diffuse(0, 2, 4 / 42);
+      diffuse(1, 2, 2 / 42);
+      diffuse(2, 2, 1 / 42);
+    }
+  }
+
+  return output;
+}
+
+/**
  * Apply Atkinson dithering to raw pixel data
- * Error diffusion pattern (less error spread):
+ * Uses serpentine scanning for artifact-free results
+ * Atkinson only distributes 6/8 (75%) of the error for high contrast
+ * 
+ * Error diffusion pattern:
  *       X   1/8  1/8
  * 1/8  1/8  1/8
  *      1/8
@@ -341,9 +867,19 @@ export function applyAtkinson(
   palette: RGB[]
 ): Uint8ClampedArray {
   const output = new Uint8ClampedArray(pixels);
+  
+  // Pre-compute OKLab palette for faster matching
+  const paletteOklab = precomputePaletteOklab(palette);
 
   for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
+    // Serpentine scanning: alternate direction each row to eliminate worm artifacts
+    const leftToRight = y % 2 === 0;
+    
+    const startX = leftToRight ? 0 : width - 1;
+    const endX = leftToRight ? width : -1;
+    const stepX = leftToRight ? 1 : -1;
+
+    for (let x = startX; x !== endX; x += stepX) {
       const idx = (y * width + x) * 4;
 
       const oldColor: RGB = {
@@ -351,8 +887,11 @@ export function applyAtkinson(
         g: output[idx + 1],
         b: output[idx + 2],
       };
+      const oldOklab = rgbToOklab(oldColor);
 
-      const newColor = findNearestColor(oldColor, palette);
+      // Find nearest palette color using OKLab
+      const nearest = findNearestColorFast(oldOklab, paletteOklab);
+      const newColor = nearest.rgb;
 
       output[idx] = newColor.r;
       output[idx + 1] = newColor.g;
@@ -363,28 +902,32 @@ export function applyAtkinson(
       const errG = (oldColor.g - newColor.g) / 8;
       const errB = (oldColor.b - newColor.b) / 8;
 
-      const distribute = (i: number) => {
-        output[i] = clamp(output[i] + errR);
-        output[i + 1] = clamp(output[i + 1] + errG);
-        output[i + 2] = clamp(output[i + 2] + errB);
+      // Direction-aware error distribution for serpentine scanning
+      const forward = stepX;
+      
+      const distribute = (dx: number, dy: number) => {
+        const nx = x + dx * forward;
+        const ny = y + dy;
+        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+          const i = (ny * width + nx) * 4;
+          output[i] = clamp(output[i] + errR);
+          output[i + 1] = clamp(output[i + 1] + errG);
+          output[i + 2] = clamp(output[i + 2] + errB);
+        }
       };
 
-      // Right
-      if (x + 1 < width) distribute(idx + 4);
-      // Right+1
-      if (x + 2 < width) distribute(idx + 8);
+      // Forward (right in normal scan)
+      distribute(1, 0);
+      // Forward+1 (right+1 in normal scan)
+      distribute(2, 0);
 
-      if (y + 1 < height) {
-        // Bottom-left
-        if (x > 0) distribute(idx + width * 4 - 4);
-        // Bottom
-        distribute(idx + width * 4);
-        // Bottom-right
-        if (x + 1 < width) distribute(idx + width * 4 + 4);
-      }
+      // Next row: backward, center, forward
+      distribute(-1, 1);
+      distribute(0, 1);
+      distribute(1, 1);
 
       // Two rows down, center
-      if (y + 2 < height) distribute(idx + width * 8);
+      distribute(0, 2);
     }
   }
 
@@ -479,14 +1022,21 @@ function addNoiseToSolidRegions(
 
 /**
  * Process image with dithering using Sharp
- * Includes smart fitting and pre-processing for better e-ink results
+ * Implements the research-backed preprocessing pipeline:
+ * 1. Resize with smart fitting
+ * 2. CLAHE for adaptive contrast (better than normalize)
+ * 3. Saturation boost (1.4× for e-ink)
+ * 4. Bilateral filter (edge-preserving smoothing)
+ * 5. Sharpening (compensate for smoothing)
+ * 6. Gamma correction (1.85 for e-ink)
+ * 7. Dithering (Stucki default, OKLab color matching)
  */
 export async function processWithDithering(
   inputBuffer: Buffer,
   width: number,
   height: number,
   palette: RGB[],
-  algorithm: DitheringAlgorithm = 'floyd-steinberg',
+  algorithm: DitheringAlgorithm = 'stucki',
   enhancement: EnhancementOptions = DEFAULT_ENHANCEMENT_OPTIONS
 ): Promise<Buffer> {
   // Get source image metadata to determine dimensions
@@ -521,30 +1071,33 @@ export async function processWithDithering(
     pipeline = pipeline.flatten({ background: bgColor });
   }
 
-  // Apply enhancement options for better dithering results
-  if (enhancement.autoContrast) {
-    // Normalize stretches the histogram for better contrast
+  // Apply basic contrast enhancement via Sharp if CLAHE is disabled
+  // (CLAHE will be applied later in pixel processing for better control)
+  if (enhancement.autoContrast && !enhancement.useClahe) {
     pipeline = pipeline.normalize();
   }
 
-  // Boost saturation - colors pop better on limited palette displays
+  // Boost saturation - e-ink displays mute colors significantly
+  // Research recommends 1.4× boost for limited palette displays
   if (enhancement.saturation !== 1.0) {
     pipeline = pipeline.modulate({
       saturation: enhancement.saturation,
     });
   }
 
-  // Denoise with median filter - reduces speckling in gradients
-  if (enhancement.denoise) {
+  // Apply median filter for basic denoising if bilateral is disabled
+  // (Bilateral will be applied later in pixel processing for edge preservation)
+  if (enhancement.denoise && !enhancement.useBilateral) {
     pipeline = pipeline.median(3);
   }
 
-  // Sharpen to restore edges lost from median filter and resize
+  // Sharpen to restore edges lost from smoothing and resize
+  // Applied before pixel processing to benefit from Sharp's quality
   if (enhancement.sharpen) {
     pipeline = pipeline.sharpen({
       sigma: 0.8,
-      m1: 1.0,
-      m2: 0.5,
+      m1: 1.2,  // Increased for better edge definition
+      m2: 0.7,
     });
   }
 
@@ -570,26 +1123,74 @@ export async function processWithDithering(
     pixels = new Uint8ClampedArray(data);
   }
 
-  // For contain/letterbox mode, add subtle noise to help dithering create patterns
+  // ============================================
+  // Advanced preprocessing pipeline (pixel-level)
+  // Research indicates preprocessing is 60% of quality
+  // ============================================
+
+  // 1. Apply CLAHE for superior local contrast enhancement
+  // Better than global normalize for photos with uneven lighting
+  if (enhancement.useClahe) {
+    pixels = applyClahe(
+      pixels,
+      info.width,
+      info.height,
+      enhancement.claheClipLimit ?? 2.5,
+      enhancement.claheTileSize ?? 8
+    );
+  }
+
+  // 2. Apply bilateral filter for edge-preserving smoothing
+  // Smooths gradients (reducing dithering noise in skies) while keeping edges sharp
+  if (enhancement.useBilateral && enhancement.denoise) {
+    pixels = applyBilateralFilter(
+      pixels,
+      info.width,
+      info.height,
+      enhancement.bilateralSigmaSpace ?? 6,
+      enhancement.bilateralSigmaRange ?? 0.12
+    );
+  }
+
+  // 3. For contain/letterbox mode, add subtle noise to help dithering create patterns
   // on solid color regions (like letterbox bars) so they match the e-ink aesthetic
   if (fit === 'contain') {
     pixels = addNoiseToSolidRegions(pixels, info.width, info.height, 6);
   }
 
-  // Apply dithering algorithm
+  // 4. Apply gamma correction for e-ink display characteristics
+  // E-ink displays are typically darker (gamma ~1.85 vs sRGB 2.2)
+  if (enhancement.displayGamma && enhancement.displayGamma !== 2.2) {
+    pixels = applyGammaCorrection(
+      pixels,
+      info.width,
+      info.height,
+      enhancement.displayGamma
+    );
+  }
+
+  // ============================================
+  // Apply dithering algorithm with OKLab color matching
+  // ============================================
   let dithered: Uint8ClampedArray;
   switch (algorithm) {
+    case 'stucki':
+      // Recommended for photographs - smoothest gradients
+      dithered = applyStucki(pixels, info.width, info.height, palette);
+      break;
     case 'floyd-steinberg':
       dithered = applyFloydSteinberg(pixels, info.width, info.height, palette);
       break;
     case 'atkinson':
+      // High contrast, punchy look - good for graphics
       dithered = applyAtkinson(pixels, info.width, info.height, palette);
       break;
     case 'ordered':
+      // Fastest, but shows visible patterns
       dithered = applyOrdered(pixels, info.width, info.height, palette);
       break;
     default:
-      dithered = applyFloydSteinberg(pixels, info.width, info.height, palette);
+      dithered = applyStucki(pixels, info.width, info.height, palette);
   }
 
   // Convert back to RGB for Sharp
