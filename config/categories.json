@@ -19,10 +19,10 @@
       "colour": "#9370DB"
     },
     {
-      "id": "glorious",
-      "name": "Glorious",
-      "description": "Very good",
-      "colour": "#84CC16"
+      "id": "animals",
+      "name": "Animals",
+      "description": "Animals and pets",
+      "colour": "#FF5733"
     }
   ]
 }

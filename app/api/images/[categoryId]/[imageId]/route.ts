@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { deleteImage, getImage } from '@/lib/utils/image';
-import { categoryExists } from '@/lib/utils/categories';
 
 interface RouteParams {
   params: Promise<{
@@ -40,19 +39,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 /**
  * DELETE /api/images/[categoryId]/[imageId] - Delete an image
+ * 
+ * Note: We don't check if the category exists - this allows deleting
+ * orphaned images even if their category definition was removed.
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { categoryId, imageId } = await params;
-
-    // Check category exists
-    const catExists = await categoryExists(categoryId);
-    if (!catExists) {
-      return NextResponse.json(
-        { success: false, error: 'Category not found' },
-        { status: 404 }
-      );
-    }
 
     // Check image exists
     const image = await getImage(categoryId, imageId);
@@ -85,4 +78,3 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     );
   }
 }
-
