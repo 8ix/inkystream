@@ -58,11 +58,12 @@ export default function ApiKeySetup({ apiKey, isNewlyGenerated }: ApiKeySetupPro
           {isNewlyGenerated ? (
             <p className="text-white/70 text-sm mb-4">
               Your API key has been automatically generated and saved to <code className="text-[#22d3ee]">.env.local</code>. 
-              Copy this key to set up Vercel and your e-ink frames.
+              Copy this key to set up Vercel and your e-ink frames. 
+              <span className="text-white/50">Local development works without the key.</span>
             </p>
           ) : (
             <p className="text-white/70 text-sm mb-4">
-              Your images are protected with API key authentication.
+              Your images will be protected with API key authentication when deployed to Vercel.
             </p>
           )}
 
@@ -113,15 +114,11 @@ export default function ApiKeySetup({ apiKey, isNewlyGenerated }: ApiKeySetupPro
                 Update your frames
               </h4>
               <p className="text-white/60 text-sm pl-7">
-                Include <code className="text-[#22d3ee]">?key=YOUR_KEY</code> in your frame&apos;s API requests.
+                Include <code className="text-[#22d3ee]">?key=YOUR_KEY</code> in your frame&apos;s API requests to your Vercel URL.
               </p>
               
-              <h4 className="font-semibold text-white text-sm flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-[#ff47b3] flex items-center justify-center text-xs">3</span>
-                Restart this app
-              </h4>
-              <p className="text-white/60 text-sm pl-7">
-                Run <code className="text-[#22d3ee]">npm run dev</code> again to apply the new key locally.
+              <p className="text-white/40 text-xs pl-7 mt-2">
+                💡 Local development works without the API key - it&apos;s only enforced on Vercel.
               </p>
             </div>
           )}

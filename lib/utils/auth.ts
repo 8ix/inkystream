@@ -3,23 +3,36 @@
  * 
  * Security layer to protect API endpoints from unauthorized access.
  * API key is stored in INKYSTREAM_API_KEY environment variable.
+ * 
+ * IMPORTANT: API key is only enforced in production (on Vercel).
+ * During local development, all requests are allowed to enable
+ * the admin interface to work without authentication.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
+ * Check if we're running in a production environment (Vercel)
+ * Vercel sets VERCEL=1 in the environment
+ */
+export function isProduction(): boolean {
+  return process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+}
+
+/**
  * Get the configured API key from environment
- * Returns null if not configured (allows open access in development)
+ * Returns null if not configured
  */
 export function getApiKey(): string | null {
   return process.env.INKYSTREAM_API_KEY || null;
 }
 
 /**
- * Check if API key protection is enabled
+ * Check if API key protection is active
+ * Only active in production when a key is configured
  */
 export function isAuthEnabled(): boolean {
-  return !!getApiKey();
+  return isProduction() && !!getApiKey();
 }
 
 /**
@@ -47,9 +60,14 @@ export function extractApiKey(request: NextRequest): string | null {
  * Validate the provided API key against the configured key
  */
 export function validateApiKey(providedKey: string | null): boolean {
+  // In development, allow all requests
+  if (!isProduction()) {
+    return true;
+  }
+
   const configuredKey = getApiKey();
   
-  // If no key is configured, allow access (development mode)
+  // If no key is configured in production, allow access (not recommended)
   if (!configuredKey) {
     return true;
   }
@@ -75,6 +93,9 @@ export function validateApiKey(providedKey: string | null): boolean {
 /**
  * Middleware helper to validate API key on a request
  * Returns error response if invalid, null if valid
+ * 
+ * Note: Only enforces authentication in production (Vercel).
+ * Local development allows all requests for admin interface access.
  */
 export function requireApiKey(request: NextRequest): NextResponse | null {
   const providedKey = extractApiKey(request);
@@ -84,9 +105,7 @@ export function requireApiKey(request: NextRequest): NextResponse | null {
       { 
         success: false, 
         error: 'Unauthorized. API key required.',
-        hint: isAuthEnabled() 
-          ? 'Include ?key=YOUR_API_KEY in the URL or Authorization: Bearer YOUR_API_KEY header'
-          : 'Set INKYSTREAM_API_KEY environment variable to enable authentication'
+        hint: 'Include ?key=YOUR_API_KEY in the URL or Authorization: Bearer YOUR_API_KEY header'
       },
       { status: 401 }
     );
@@ -119,4 +138,3 @@ export function generateApiKey(): string {
   
   return result;
 }
-
