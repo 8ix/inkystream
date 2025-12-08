@@ -28,6 +28,8 @@ InkyStream is an open-source application designed to run locally on a Raspberry 
 
 ### Quick Start (Docker on Raspberry Pi)
 
+The Docker image uses `node:20-alpine` as the base to avoid security vulnerabilities (specifically CVE-2023-45853 in Debian's zlib). Alpine provides a secure, lightweight foundation while maintaining full ARM compatibility for Raspberry Pi.
+
 ```bash
 # Clone the repository
 git clone https://github.com/8ix/inkystream.git

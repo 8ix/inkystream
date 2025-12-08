@@ -1,15 +1,15 @@
 # Multi-stage build for Raspberry Pi (arm64/armv7) and generic Linux
+# Using Alpine to avoid CVE-2023-45853 (zlib vulnerability in Debian)
 # Stage 1: Builder
-FROM node:20-slim AS builder
+FROM node:20-alpine AS builder
 
-# Install build deps (sharp needs libvips, build-essentials)
-RUN apt-get update && apt-get install -y \
+# Install build deps (sharp needs libvips, build tools)
+RUN apk add --no-cache \
     python3 \
-    build-essential \
-    libc6 \
-    libvips-dev \
-    git \
-  && rm -rf /var/lib/apt/lists/*
+    make \
+    g++ \
+    vips-dev \
+    git
 
 WORKDIR /app
 
@@ -22,17 +22,15 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Runner
-FROM node:20-slim AS runner
+FROM node:20-alpine AS runner
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-# Install runtime deps for sharp
-RUN apt-get update && apt-get install -y \
-    libc6 \
-    libvips \
-  && rm -rf /var/lib/apt/lists/*
+# Install runtime deps for sharp (vips)
+RUN apk add --no-cache \
+    vips
 
 WORKDIR /app
 

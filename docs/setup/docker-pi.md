@@ -2,6 +2,8 @@
 
 This guide shows how to run InkyStream locally on a Raspberry Pi using Docker. The app is designed for local-network use to keep your photos private.
 
+**Note:** The Docker image uses `node:20-alpine` as the base to avoid CVE-2023-45853 (zlib vulnerability). Alpine Linux provides a more secure foundation while maintaining full ARM compatibility for Raspberry Pi.
+
 ## Prerequisites
 - Raspberry Pi (arm64/armv7) with Docker installed
 - Git
