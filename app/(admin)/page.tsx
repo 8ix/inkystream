@@ -27,7 +27,10 @@ export default async function AdminDashboard() {
           Welcome back<span className="text-gradient">!</span>
         </h1>
         <p className="text-white/60 mt-2 text-lg">
-          Here&apos;s what&apos;s happening with your InkyStream library
+          InkyStream runs best as a local Raspberry Pi server: generate dithered images and serve API feeds to all your e-ink frames over your LAN.
+        </p>
+        <p className="text-white/40 text-sm mt-1">
+          Purpose-built for privacy on your own hardware. If you expose it beyond your LAN, add API key auth and HTTPS.
         </p>
       </div>
 

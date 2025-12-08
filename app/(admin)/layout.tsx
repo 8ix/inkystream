@@ -70,7 +70,7 @@ export default function AdminLayout({
               <h3 className="text-sm font-semibold text-white">Local Mode</h3>
             </div>
             <p className="text-xs text-gray-400 leading-relaxed">
-              Admin interface runs locally. Only API endpoints deploy to Vercel.
+              Intended for a local Raspberry Pi host on your trusted LAN. No strict auth by default. If you expose it publicly, enable API key auth and HTTPS.
             </p>
           </div>
         </div>

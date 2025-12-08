@@ -1,6 +1,6 @@
 # Vercel Deployment Guide
 
-Deploy InkyStream to Vercel's free hobby tier. Only the API routes and processed images are deployed - the admin interface runs locally only.
+**Note:** InkyStream is primarily intended for local Raspberry Pi hosting via Docker. If you choose to adapt it to Vercel (or any public host), ensure you set `INKYSTREAM_API_KEY`, use HTTPS, and restrict network access. The admin UI remains local-only.
 
 ## Prerequisites
 

@@ -8,7 +8,7 @@
 
 ---
 
-InkyStream is an open-source application that helps you process and serve images to e-ink photo frames like the Pimoroni Inky Frame. Run the admin interface locally to process images, then deploy only the API to Vercel's free tier.
+InkyStream is an open-source application designed to run locally on a Raspberry Pi via Docker. It processes your photos into beautifully dithered images and serves device-ready feeds to your e-ink frames over your local network. Keeping it local means your images stay private—no cloud required. You can still adapt it to other hosts (e.g., Vercel), but the primary target is a self-hosted Pi.
 
 ## Features
 
@@ -20,32 +20,36 @@ InkyStream is an open-source application that helps you process and serve images
 - **Image Enhancement** - Contrast boost, saturation, denoising, and sharpening
 - **Multiple Display Support** - Pimoroni Inky Frame, Waveshare, and more
 - **API Key Protection** - Secure your images with optional API key authentication
-- **Zero Hosting Costs** - Deploy to Vercel's free tier
-- **Simple Deployment** - Just `git push` to deploy updates
+- **Docker-First on Raspberry Pi** - Run locally on your own hardware for privacy
+- **Local-Only by Design** - No strict auth by default; intended for trusted LAN use
+- **Optional Cloud** - Can be adapted to Vercel/other hosts if you add auth
 
 ## Quick Start
 
-### Prerequisites
-
-- **Node.js 18+** - [Download](https://nodejs.org/)
-- **Git** - [Download](https://git-scm.com/)
-- **Vercel Account** - [Sign up (free)](https://vercel.com/)
-
-### Installation
+### Quick Start (Docker on Raspberry Pi)
 
 ```bash
 # Clone the repository
 git clone https://github.com/8ix/inkystream.git
 cd inkystream
 
-# Install dependencies
-npm install
+# Build the image (defaults to PORT 3000)
+docker build -t inkystream:latest .
 
-# Start the development server
-npm run dev
+# Run on port 3000 (set PORT to change)
+docker run -d \
+  -p 3000:3000 \
+  -e PORT=3000 \
+  -v $(pwd)/images:/app/images \
+  -v $(pwd)/config/displays.json:/app/config/displays.json \
+  --name inkystream \
+  inkystream:latest
+
+# Open the admin UI on your Pi's LAN IP, e.g.:
+# http://raspberrypi.local:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to access the admin interface.
+**Note:** This is intended for a trusted local network. If you expose it publicly, add API auth and HTTPS.
 
 ### Your First Image
 
@@ -58,44 +62,23 @@ Open [http://localhost:3000](http://localhost:3000) to access the admin interfac
 7. Click **Process**
 8. View your processed image in the **Gallery**
 
-### Deploy to Vercel
+### Optional: Adapt for Vercel/Cloud
 
-1. Push your repository to GitHub
-2. Go to [vercel.com](https://vercel.com) and sign in
-3. Click **Add New** → **Project**
-4. Select your InkyStream repository
-5. **Add environment variable**: `INKYSTREAM_API_KEY` = your secure key (see [Security](#security))
-6. Click **Deploy**
+The project is designed for local Pi hosting without strict auth. If you deploy to a public host, you must:
 
-Your API is now live! Update images with:
-
-```bash
-git add .
-git commit -m "Added new photos"
-git push
-```
+1. Set `INKYSTREAM_API_KEY` and enforce it on all endpoints you expose.
+2. Add HTTPS and any network protections you need.
+3. Consider moving `images/` to private storage and serving only via authenticated APIs.
 
 ## Security
 
 InkyStream protects your personal photos with API key authentication.
 
-### Setting Up API Key
+### Security (local-first)
 
-1. **Generate a secure key** (32+ characters recommended):
-   ```bash
-   openssl rand -base64 32
-   ```
-
-2. **For Vercel deployment**:
-   - Go to your project settings on Vercel
-   - Navigate to **Environment Variables**
-   - Add `INKYSTREAM_API_KEY` with your key
-   - Redeploy
-
-3. **For local development** (optional):
-   - Copy `.env.example` to `.env.local`
-   - Set `INKYSTREAM_API_KEY=your-key`
-   - Or leave empty for open access during development
+- On a trusted LAN/Raspberry Pi: API key is optional; leaving it unset means open access for local devices.
+- If you expose the app beyond your LAN: set `INKYSTREAM_API_KEY` and require it on every endpoint you open.
+- Images live in `images/` on your Pi; they are not public unless you expose the API.
 
 ### How It Works
 
