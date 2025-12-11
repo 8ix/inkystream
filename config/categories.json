@@ -17,12 +17,6 @@
       "name": "Art",
       "description": "Artistic and abstract images",
       "colour": "#9370DB"
-    },
-    {
-      "id": "animals",
-      "name": "Animals",
-      "description": "Animals and pets",
-      "colour": "#FF5733"
     }
   ]
 }

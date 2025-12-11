@@ -5,7 +5,7 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
-import type { Device, DevicesConfig } from '@/lib/types/device';
+import type { Device, DevicesConfig, DevicePlatform } from '@/lib/types/device';
 import { getDisplayProfile } from '@/lib/displays/profiles';
 
 const CONFIG_PATH = path.join(process.cwd(), 'config', 'devices.json');
@@ -63,7 +63,10 @@ function generateSlug(name: string): string {
  */
 export async function createDevice(
   name: string,
-  displayId: string
+  displayId: string,
+  platform?: Device['platform'],
+  codeTemplate?: string,
+  refreshIntervalSeconds?: number
 ): Promise<Device> {
   const devices = await getDevices();
   
@@ -81,6 +84,9 @@ export async function createDevice(
     id: slug,
     name,
     displayId,
+    platform,
+    codeTemplate,
+    refreshIntervalSeconds,
     createdAt: new Date().toISOString(),
   };
   
@@ -95,7 +101,7 @@ export async function createDevice(
  */
 export async function updateDevice(
   id: string,
-  updates: Partial<Pick<Device, 'name' | 'displayId'>>
+  updates: Partial<Pick<Device, 'name' | 'displayId' | 'platform' | 'codeTemplate' | 'refreshIntervalSeconds' | 'lastSeenAt'>>
 ): Promise<Device | null> {
   const devices = await getDevices();
   const index = devices.findIndex((d) => d.id === id);
@@ -111,6 +117,14 @@ export async function updateDevice(
   
   await saveDevices(devices);
   return devices[index];
+}
+
+/**
+ * Update last seen timestamp for a device
+ */
+export async function touchDeviceLastSeen(id: string): Promise<void> {
+  const now = new Date().toISOString();
+  await updateDevice(id, { lastSeenAt: now });
 }
 
 /**

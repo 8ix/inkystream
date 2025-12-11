@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllImages, getCategoryImages, getImageUrlForDevice } from '@/lib/utils/image';
-import { getDevice } from '@/lib/utils/devices';
+import { getDevice, touchDeviceLastSeen } from '@/lib/utils/devices';
 import { categoryExists } from '@/lib/utils/categories';
 import { requireApiKey } from '@/lib/utils/auth';
 
@@ -72,6 +72,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Select random image
     const randomIndex = Math.floor(Math.random() * validImages.length);
     const randomImage = validImages[randomIndex];
+
+    // Record last seen
+    await touchDeviceLastSeen(deviceId);
 
     return NextResponse.json({
       success: true,

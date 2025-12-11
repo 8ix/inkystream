@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDevices, createDevice } from '@/lib/utils/devices';
 import { displayExists } from '@/lib/displays/profiles';
+import type { DevicePlatform } from '@/lib/types/device';
 
 /**
  * GET /api/devices - List all devices
@@ -27,7 +28,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, displayId } = body;
+    const { name, displayId, platform, codeTemplate, refreshIntervalSeconds } = body;
 
     // Validate inputs
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -44,6 +45,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate platform if provided
+    const validPlatforms: DevicePlatform[] = [
+      'micropython-inky-frame',
+      'arduino-esp32',
+      'python-raspberry-pi',
+      'custom',
+    ];
+    if (platform && !validPlatforms.includes(platform)) {
+      return NextResponse.json(
+        { success: false, error: `Invalid platform. Must be one of: ${validPlatforms.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate codeTemplate only for custom platform
+    if (platform === 'custom' && (!codeTemplate || typeof codeTemplate !== 'string' || codeTemplate.trim().length === 0)) {
+      return NextResponse.json(
+        { success: false, error: 'Code template is required when platform is "custom"' },
+        { status: 400 }
+      );
+    }
+
+    // Validate refreshIntervalSeconds if provided
+    if (refreshIntervalSeconds !== undefined) {
+      const value = Number(refreshIntervalSeconds);
+      if (!Number.isFinite(value) || value <= 0) {
+        return NextResponse.json(
+          { success: false, error: 'refreshIntervalSeconds must be a positive number' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Check display exists
     const dispExists = await displayExists(displayId);
     if (!dispExists) {
@@ -54,7 +88,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the device
-    const device = await createDevice(name.trim(), displayId);
+    const device = await createDevice(
+      name.trim(),
+      displayId,
+      platform,
+      codeTemplate,
+      refreshIntervalSeconds !== undefined ? Number(refreshIntervalSeconds) : undefined
+    );
 
     return NextResponse.json({
       success: true,

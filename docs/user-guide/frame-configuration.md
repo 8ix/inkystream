@@ -11,6 +11,32 @@ Your e-ink frame needs to:
 4. Download and display the images
 5. Optionally rotate images on a schedule
 
+Tip: On the Devices page, click the **Code (</>)** button for your device to generate ready-to-run firmware snippets (set WiFi/API base, API key, refresh interval, and button support before copying).
+
+## Quick Start: Auto-Generated Code
+
+InkyStream can automatically generate ready-to-use integration code for your devices:
+
+1. Go to **Devices** page in the admin interface
+2. Create or select a device
+3. Click the **Code** icon (</>) next to your device
+4. Select your platform (MicroPython, Arduino, Python, or Custom)
+5. Copy the generated code
+6. Follow the platform-specific instructions shown
+
+The generated code includes:
+- WiFi connection setup
+- API authentication
+- Image fetching and display logic
+- Error handling
+- Platform-specific best practices
+
+Supported platforms:
+- **MicroPython (Inky Frame)**: Pimoroni Inky Frame with Pico W/Pico 2 W
+- **Arduino (ESP32)**: ESP32-based e-paper displays
+- **Python (Raspberry Pi)**: Raspberry Pi with Python and e-ink libraries
+- **Custom**: Use your own code template with variable substitution
+
 ## Setting Up Your Device in InkyStream
 
 Before configuring your frame, create a device in InkyStream:
@@ -19,7 +45,8 @@ Before configuring your frame, create a device in InkyStream:
 2. Click **Add Device**
 3. Enter a memorable name (e.g., "Living Room Frame")
 4. Select the display type matching your hardware
-5. Click **Create Device**
+5. (Optional) Select a platform for code generation
+6. Click **Create Device**
 
 Note the **device ID** shown (it's the URL-friendly version of your name, like `living-room-frame`).
 

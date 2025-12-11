@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDevice, updateDevice, deleteDevice } from '@/lib/utils/devices';
 import { displayExists } from '@/lib/displays/profiles';
+import type { DevicePlatform } from '@/lib/types/device';
 
 interface RouteParams {
   params: Promise<{
@@ -43,7 +44,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const { deviceId } = await params;
     const body = await request.json();
-    const { name, displayId } = body;
+    const { name, displayId, platform, codeTemplate, refreshIntervalSeconds } = body;
 
     // Check device exists
     const existingDevice = await getDevice(deviceId);
@@ -55,7 +56,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Build updates object
-    const updates: { name?: string; displayId?: string } = {};
+    const updates: { 
+      name?: string; 
+      displayId?: string; 
+      platform?: DevicePlatform;
+      codeTemplate?: string;
+      refreshIntervalSeconds?: number;
+    } = {};
 
     if (name !== undefined) {
       if (typeof name !== 'string' || name.trim().length === 0) {
@@ -82,6 +89,52 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         );
       }
       updates.displayId = displayId;
+    }
+
+    if (platform !== undefined) {
+      const validPlatforms: DevicePlatform[] = [
+        'micropython-inky-frame',
+        'arduino-esp32',
+        'python-raspberry-pi',
+        'custom',
+      ];
+      if (!validPlatforms.includes(platform)) {
+        return NextResponse.json(
+          { success: false, error: `Invalid platform. Must be one of: ${validPlatforms.join(', ')}` },
+          { status: 400 }
+        );
+      }
+      updates.platform = platform;
+    }
+
+    if (codeTemplate !== undefined) {
+      if (typeof codeTemplate !== 'string') {
+        return NextResponse.json(
+          { success: false, error: 'Code template must be a string' },
+          { status: 400 }
+        );
+      }
+      // Only require template if platform is custom
+      if (updates.platform === 'custom' || (platform === undefined && existingDevice.platform === 'custom')) {
+        if (codeTemplate.trim().length === 0) {
+          return NextResponse.json(
+            { success: false, error: 'Code template is required when platform is "custom"' },
+            { status: 400 }
+          );
+        }
+      }
+      updates.codeTemplate = codeTemplate;
+    }
+
+    if (refreshIntervalSeconds !== undefined) {
+      const value = Number(refreshIntervalSeconds);
+      if (!Number.isFinite(value) || value <= 0) {
+        return NextResponse.json(
+          { success: false, error: 'refreshIntervalSeconds must be a positive number' },
+          { status: 400 }
+        );
+      }
+      updates.refreshIntervalSeconds = value;
     }
 
     // Update the device

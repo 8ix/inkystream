@@ -26,6 +26,15 @@ export default async function DevicesPage() {
         <p className="text-white/60">
           Manage your e-ink frames and displays. Each device is linked to a specific display type.
         </p>
+        <div className="mt-3 text-white/70 text-sm space-y-1">
+          <p className="font-semibold text-white/80">Getting started</p>
+          <ul className="list-disc list-inside space-y-1">
+            <li>Create a device and pick the display type</li>
+            <li>Click the Code (&lt;/&gt;) button on the device row</li>
+            <li>Set WiFi, API base (e.g. raspberrypi.local:3000), API key, refresh</li>
+            <li>Copy the code and flash/run on your frame</li>
+          </ul>
+        </div>
       </div>
 
       {/* Device Manager Component */}
