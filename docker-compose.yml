@@ -6,9 +6,6 @@ services:
       dockerfile: Dockerfile
     container_name: inkystream
     restart: unless-stopped
-    # No ports needed - Traefik handles routing
-    # ports:
-    #   - "${PORT:-3001}:3000"
     environment:
       - INKYSTREAM_API_KEY=${INKYSTREAM_API_KEY:-}
       - PORT=3000
@@ -20,8 +17,8 @@ services:
       # Enable Traefik
       - "traefik.enable=true"
       
-      # HTTPS Router
-      - "traefik.http.routers.inkystream.rule=Host(\`inkystream.andbert.com\`)"
+      # HTTPS Router - Fixed escaping
+      - "traefik.http.routers.inkystream.rule=Host(`inkystream.andbert.com`)"
       - "traefik.http.routers.inkystream.entrypoints=websecure"
       - "traefik.http.routers.inkystream.tls=true"
       - "traefik.http.routers.inkystream.tls.certresolver=letsencrypt"
