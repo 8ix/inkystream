@@ -34,23 +34,20 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# Copy package files and install prod deps
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --legacy-peer-deps
+# Copy standalone output from builder
+# The standalone directory contains node_modules, server.js, and .next/server
+COPY --from=builder /app/.next/standalone ./
 
-# Copy built app from builder
-COPY --from=builder /app/.next ./.next
+# Copy public directory (not included in standalone output)
 COPY --from=builder /app/public ./public
+
+# Copy config directory (for build-time config, volume mount overrides at runtime)
 COPY --from=builder /app/config ./config
 
 # Create images directory for volume mount (not copied, as it's mounted at runtime)
 RUN mkdir -p ./images
 
-COPY --from=builder /app/next.config.js ./next.config.js
-COPY --from=builder /app/tailwind.config.ts ./tailwind.config.ts
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
-COPY --from=builder /app/package.json ./package.json
-
 EXPOSE 3000
 
-CMD ["npm", "run", "start"]
+# Use the standalone server.js entry point
+CMD ["node", "server.js"]
