@@ -1,5 +1,4 @@
 version: '3.8'
-
 services:
   inkystream:
     build:
@@ -7,58 +6,25 @@ services:
       dockerfile: Dockerfile
     container_name: inkystream
     restart: unless-stopped
-
-    # Port mapping - Only needed if NOT using Traefik/reverse proxy
-    # If using Traefik: Comment out this section (Traefik routes via Docker network)
-    # If NOT using Traefik: Uncomment to expose port directly
-    # Format: HOST_PORT:CONTAINER_PORT
-    ports:
-      - "${PORT:-3001}:3000"
-
-    # Environment variables
+    # No ports needed - Traefik handles routing
+    # ports:
+    #   - "${PORT:-3001}:3000"
     environment:
-      # API Key for authentication (optional for local network, required for public)
       - INKYSTREAM_API_KEY=${INKYSTREAM_API_KEY:-}
-      # Container port (keep as 3000 unless you modify the Dockerfile)
       - PORT=3000
       - NODE_ENV=production
-
-    # Persistent volumes
     volumes:
-      # Images directory - stores processed images
       - ./images:/app/images
-      # Config files - devices and categories
       - ./config:/app/config
-
-    # Traefik labels (HTTPS/SSL support via reverse proxy)
-    # Uncomment and configure these if using Traefik for SSL termination
-    # If you're not using Traefik, you can delete this section entirely
-    # COMMENTED OUT - Enable when Traefik is running
-    # labels:
-      # # Enable Traefik
-      # - "traefik.enable=true"
-      #
-      # # HTTP Router (redirects to HTTPS)
-      # - "traefik.http.routers.inkystream-http.rule=Host(`${DOMAIN:-inkystream.local}`)"
-      # - "traefik.http.routers.inkystream-http.entrypoints=web"
-      # - "traefik.http.routers.inkystream-http.middlewares=redirect-to-https"
-      #
-      # # HTTPS Router
-      # - "traefik.http.routers.inkystream.rule=Host(`${DOMAIN:-inkystream.local}`)"
-      # - "traefik.http.routers.inkystream.entrypoints=websecure"
-      # - "traefik.http.routers.inkystream.tls=true"
-      # - "traefik.http.routers.inkystream.tls.certresolver=${CERT_RESOLVER:-letsencrypt}"
-      #
-      # # Service configuration
-      # - "traefik.http.services.inkystream.loadbalancer.server.port=3000"
-      #
-      # # Redirect middleware
-      # - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      # - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
-
-# Networks - Only needed when using Traefik
-# COMMENTED OUT - Enable when Traefik is running
-# networks:
-#   default:
-#     external:
-#       name: ${TRAEFIK_NETWORK:-traefik_default}
+    labels:
+      # Enable Traefik
+      - "traefik.enable=true"
+      
+      # HTTPS Router
+      - "traefik.http.routers.inkystream.rule=Host(\`inkystream.andbert.com\`)"
+      - "traefik.http.routers.inkystream.entrypoints=websecure"
+      - "traefik.http.routers.inkystream.tls=true"
+      - "traefik.http.routers.inkystream.tls.certresolver=letsencrypt"
+      
+      # Service configuration
+      - "traefik.http.services.inkystream.loadbalancer.server.port=3000"
