@@ -45,13 +45,19 @@ COPY --from=builder /app/.next/static ./.next/static
 # Copy public directory (not included in standalone output)
 COPY --from=builder /app/public ./public
 
-# Copy config directory (for build-time config, volume mount overrides at runtime)
-COPY --from=builder /app/config ./config
+# Copy config directory to a default location (for initialization)
+# The volume mount will override this at runtime, but we keep defaults for first-run
+COPY --from=builder /app/config ./config.default
 
 # Create images directory for volume mount (not copied, as it's mounted at runtime)
 RUN mkdir -p ./images
 
+# Copy and make entrypoint script executable
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 EXPOSE 3000
 
-# Use the standalone server.js entry point
+# Use entrypoint to initialize config files, then run server
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "server.js"]
