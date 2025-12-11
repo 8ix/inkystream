@@ -38,6 +38,10 @@ WORKDIR /app
 # The standalone directory contains node_modules, server.js, and .next/server
 COPY --from=builder /app/.next/standalone ./
 
+# Copy static files (CSS, JS, fonts) - required for standalone mode
+# These need to be at .next/static relative to where server.js runs
+COPY --from=builder /app/.next/static ./.next/static
+
 # Copy public directory (not included in standalone output)
 COPY --from=builder /app/public ./public
 
