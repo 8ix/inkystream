@@ -42,8 +42,10 @@ RUN npm ci --omit=dev --legacy-peer-deps
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/config ./config
-# Images directory can be mounted as a volume; copy if exists
-COPY --from=builder /app/images ./images
+
+# Create images directory for volume mount (not copied, as it's mounted at runtime)
+RUN mkdir -p ./images
+
 COPY --from=builder /app/next.config.js ./next.config.js
 COPY --from=builder /app/tailwind.config.ts ./tailwind.config.ts
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
