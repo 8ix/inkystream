@@ -17,3 +17,6 @@ export interface CategoriesConfig {
   categories: Category[];
 }
 
+
+
+

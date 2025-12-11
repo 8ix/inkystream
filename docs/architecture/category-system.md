@@ -268,3 +268,6 @@ git push
 - Consider your e-ink frame placement when naming categories
 - Categories can represent themes, locations, or time periods
 
+
+
+

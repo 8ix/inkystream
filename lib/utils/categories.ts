@@ -26,9 +26,12 @@ export async function getCategories(): Promise<Category[]> {
   try {
     const content = await fs.readFile(CONFIG_PATH, 'utf-8');
     const config: CategoriesConfig = JSON.parse(content);
+    console.log(`Loaded ${config.categories.length} categories from ${CONFIG_PATH}`);
     return config.categories;
   } catch (error) {
     console.error('Failed to load categories:', error);
+    console.error('CONFIG_PATH:', CONFIG_PATH);
+    console.error('process.cwd():', process.cwd());
     return [];
   }
 }
@@ -103,7 +106,14 @@ export async function createCategory(
   };
 
   categories.push(newCategory);
-  await fs.writeFile(CONFIG_PATH, JSON.stringify({ categories }, null, 2), 'utf-8');
+  try {
+    await fs.writeFile(CONFIG_PATH, JSON.stringify({ categories }, null, 2), 'utf-8');
+    console.log(`Successfully wrote category to ${CONFIG_PATH}`);
+  } catch (error) {
+    console.error('Failed to write category:', error);
+    console.error('CONFIG_PATH:', CONFIG_PATH);
+    throw error;
+  }
 
   // Create the category's image directory
   const categoryDir = path.join(process.cwd(), 'public', 'images', id);

@@ -125,3 +125,6 @@ Edit `config/displays.json` to add support for new e-ink displays. See the [Addi
 - [Deploy to Vercel](./vercel-deployment.md)
 - [Configure your e-ink frame](../user-guide/frame-configuration.md)
 
+
+
+

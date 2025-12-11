@@ -244,3 +244,6 @@ curl -I https://your-domain.vercel.app/images/landscapes/img001/inky_frame_7_spe
 2. Verify all dependencies are in `package.json`
 3. Test locally with `npm run build && npm start`
 
+
+
+

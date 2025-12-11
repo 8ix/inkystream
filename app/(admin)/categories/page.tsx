@@ -6,6 +6,8 @@ import { Palette } from 'lucide-react';
  * Category management page
  * Allows users to create, edit, and delete categories
  */
+export const revalidate = 0; // Disable caching to always show latest categories
+
 export default async function CategoriesPage() {
   const categories = await getCategoriesWithCounts();
 
@@ -29,4 +31,7 @@ export default async function CategoriesPage() {
     </div>
   );
 }
+
+
+
 

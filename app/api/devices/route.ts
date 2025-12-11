@@ -81,6 +81,10 @@ export async function POST(request: NextRequest) {
     // Check display exists
     const dispExists = await displayExists(displayId);
     if (!dispExists) {
+      // Log available displays for debugging
+      const { getDisplayProfiles } = await import('@/lib/displays/profiles');
+      const allDisplays = await getDisplayProfiles();
+      console.error(`Display '${displayId}' not found. Available displays:`, allDisplays.map(d => d.id));
       return NextResponse.json(
         { success: false, error: `Display type '${displayId}' not found` },
         { status: 400 }

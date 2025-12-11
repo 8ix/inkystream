@@ -26,3 +26,6 @@ export function getQueryParams(request: Request) {
   return Object.fromEntries(url.searchParams.entries());
 }
 
+
+
+

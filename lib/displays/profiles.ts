@@ -16,9 +16,12 @@ export async function getDisplayProfiles(): Promise<DisplayProfile[]> {
   try {
     const content = await fs.readFile(CONFIG_PATH, 'utf-8');
     const config: DisplaysConfig = JSON.parse(content);
+    console.log(`Loaded ${config.displays.length} display profiles from ${CONFIG_PATH}`);
     return config.displays;
   } catch (error) {
     console.error('Failed to load display profiles:', error);
+    console.error('CONFIG_PATH:', CONFIG_PATH);
+    console.error('process.cwd():', process.cwd());
     return [];
   }
 }
