@@ -48,12 +48,15 @@ export async function getCategory(id: string): Promise<Category | null> {
  * Get the image count for a specific category
  */
 export async function getCategoryImageCount(categoryId: string): Promise<number> {
-  const imagesDir = path.join(process.cwd(), 'public', 'images', categoryId);
+  // Images are stored in images/{categoryId}/{imageId}/, not public/images/
+  const imagesDir = path.join(process.cwd(), 'images', categoryId);
 
   try {
     const entries = await fs.readdir(imagesDir, { withFileTypes: true });
     return entries.filter((entry) => entry.isDirectory()).length;
-  } catch {
+  } catch (error) {
+    // Directory might not exist if category has no images yet
+    console.log(`Category ${categoryId} image directory not found or empty:`, imagesDir);
     return 0;
   }
 }
@@ -115,8 +118,8 @@ export async function createCategory(
     throw error;
   }
 
-  // Create the category's image directory
-  const categoryDir = path.join(process.cwd(), 'public', 'images', id);
+  // Create the category's image directory (images/{id}, not public/images/{id})
+  const categoryDir = path.join(process.cwd(), 'images', id);
   try {
     await fs.mkdir(categoryDir, { recursive: true });
   } catch {
@@ -178,8 +181,8 @@ export async function deleteCategory(id: string): Promise<boolean> {
   categories.splice(index, 1);
   await fs.writeFile(CONFIG_PATH, JSON.stringify({ categories }, null, 2), 'utf-8');
 
-  // Optionally remove the empty directory
-  const categoryDir = path.join(process.cwd(), 'public', 'images', id);
+  // Optionally remove the empty directory (images/{id}, not public/images/{id})
+  const categoryDir = path.join(process.cwd(), 'images', id);
   try {
     await fs.rmdir(categoryDir);
   } catch {
