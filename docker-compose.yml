@@ -8,10 +8,12 @@ services:
     container_name: inkystream
     restart: unless-stopped
 
-    # Port mapping - Change the left side (3000) to expose on different host port
+    # Port mapping - Only needed if NOT using Traefik/reverse proxy
+    # If using Traefik: Comment out this section (Traefik routes via Docker network)
+    # If NOT using Traefik: Uncomment to expose port directly
     # Format: HOST_PORT:CONTAINER_PORT
-    ports:
-      - "${PORT:-3000}:3000"
+    # ports:
+    #   - "${PORT:-3000}:3000"
 
     # Environment variables
     environment:
@@ -53,9 +55,9 @@ services:
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
 
-# Networks (optional - uncomment if using Traefik)
-# If you're using Traefik, make sure the container is on the same network
-# networks:
-#   default:
-#     external:
-#       name: traefik_network
+# Networks - Uncomment and configure if using Traefik
+# Make sure the network name matches your Traefik network
+networks:
+  default:
+    external:
+      name: traefik_default  # Change this to match your Traefik network name
