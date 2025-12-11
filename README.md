@@ -26,32 +26,51 @@ InkyStream is an open-source application designed to run locally on a Raspberry 
 
 ## Quick Start
 
-### Quick Start (Docker on Raspberry Pi)
+### Option 1: Docker Compose (Recommended)
 
-The Docker image uses `node:20-alpine` as the base to avoid security vulnerabilities (specifically CVE-2023-45853 in Debian's zlib). Alpine provides a secure, lightweight foundation while maintaining full ARM compatibility for Raspberry Pi.
+The easiest way to deploy InkyStream with persistent storage and easy configuration.
 
 ```bash
 # Clone the repository
 git clone https://github.com/8ix/inkystream.git
 cd inkystream
 
-# Build the image (defaults to PORT 3000)
+# Create environment file
+cp .env.docker .env
+
+# Start with Docker Compose
+docker-compose up -d
+
+# Access at http://your-server-ip:3000
+```
+
+For Portainer, Traefik, or other deployment options, see the [Docker Deployment Guide](DOCKER-DEPLOYMENT.md).
+
+### Option 2: Docker CLI
+
+For manual Docker deployment:
+
+```bash
+# Clone the repository
+git clone https://github.com/8ix/inkystream.git
+cd inkystream
+
+# Build the image
 docker build -t inkystream:latest .
 
-# Run on port 3000 (set PORT to change)
+# Run the container
 docker run -d \
   -p 3000:3000 \
   -e PORT=3000 \
   -v $(pwd)/images:/app/images \
-  -v $(pwd)/config/displays.json:/app/config/displays.json \
+  -v $(pwd)/config:/app/config \
   --name inkystream \
   inkystream:latest
 
-# Open the admin UI on your Pi's LAN IP, e.g.:
-# http://raspberrypi.local:3000
+# Access at http://your-server-ip:3000
 ```
 
-**Note:** This is intended for a trusted local network. If you expose it publicly, add API auth and HTTPS.
+**Note:** The Docker image uses `node:20-alpine` to avoid CVE-2023-45853. This is intended for a trusted local network. For public access, set `INKYSTREAM_API_KEY` and use HTTPS.
 
 ### Your First Image
 
@@ -283,6 +302,7 @@ npm run lint            # Check linting
 
 Full documentation is available in the `/docs` directory:
 
+- [Docker Deployment Guide](DOCKER-DEPLOYMENT.md) - **Portainer, Traefik, and Docker Compose**
 - [Getting Started](docs/user-guide/getting-started.md)
 - [Local Development Setup](docs/setup/local-development.md)
 - [Vercel Deployment](docs/setup/vercel-deployment.md)
