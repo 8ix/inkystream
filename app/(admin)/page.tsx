@@ -9,6 +9,7 @@ import { Upload, Image, Layers, Monitor, Sparkles, ArrowRight, Zap } from 'lucid
  * Admin Dashboard - Overview of the image library
  */
 export const revalidate = 0; // Disable caching to always show latest data
+export const dynamic = 'force-dynamic'; // Force dynamic rendering
 
 export default async function AdminDashboard() {
   const [categories, displays, images, devices] = await Promise.all([

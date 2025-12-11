@@ -8,6 +8,7 @@ import { Monitor } from 'lucide-react';
  * Allows users to create, edit, and delete devices
  */
 export const revalidate = 0; // Disable caching to always show latest devices
+export const dynamic = 'force-dynamic'; // Force dynamic rendering
 
 export default async function DevicesPage() {
   const [devices, displays] = await Promise.all([

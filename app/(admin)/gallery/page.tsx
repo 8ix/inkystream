@@ -14,6 +14,7 @@ interface GalleryPageProps {
  * Gallery page - view and manage processed images
  */
 export const revalidate = 0; // Disable caching to always show latest images
+export const dynamic = 'force-dynamic'; // Force dynamic rendering
 
 export default async function GalleryPage({ searchParams }: GalleryPageProps) {
   const params = await searchParams;

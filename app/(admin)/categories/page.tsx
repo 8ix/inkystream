@@ -7,6 +7,7 @@ import { Palette } from 'lucide-react';
  * Allows users to create, edit, and delete categories
  */
 export const revalidate = 0; // Disable caching to always show latest categories
+export const dynamic = 'force-dynamic'; // Force dynamic rendering
 
 export default async function CategoriesPage() {
   const categories = await getCategoriesWithCounts();
