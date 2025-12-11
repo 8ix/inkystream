@@ -26,11 +26,5 @@ services:
       # Service configuration
       - "traefik.http.services.inkystream.loadbalancer.server.port=3000"
       - "traefik.http.services.inkystream.loadbalancer.server.scheme=http"
-    # Uncomment and configure if Traefik is on a specific network and requires same-network connectivity:
-    # networks:
-    #   - traefik_network
-# Uncomment and configure if Traefik is on a custom network:
-# networks:
-#   traefik_network:
-#     external: true
-#     name: your_traefik_network_name
+    # Use bridge network mode to connect to same network as Traefik
+    network_mode: bridge
