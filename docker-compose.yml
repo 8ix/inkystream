@@ -55,9 +55,10 @@ services:
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
 
-# Networks - Uncomment and configure if using Traefik
-# Make sure the network name matches your Traefik network
+# Networks - Configurable via TRAEFIK_NETWORK environment variable
+# Set TRAEFIK_NETWORK in Portainer to match your Traefik network name
+# To find it: docker network ls | grep traefik
 networks:
   default:
     external:
-      name: traefik_default  # Change this to match your Traefik network name
+      name: ${TRAEFIK_NETWORK:-traefik_default}
