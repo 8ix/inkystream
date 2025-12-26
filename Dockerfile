@@ -3,6 +3,9 @@
 # Stage 1: Builder
 FROM node:20-alpine AS builder
 
+# Cache bust arg - change value to force full rebuild
+ARG CACHE_BUST=1
+
 # Install build deps (sharp needs libvips, build tools)
 RUN apk add --no-cache \
     python3 \
