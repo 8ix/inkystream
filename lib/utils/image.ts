@@ -187,6 +187,13 @@ export async function processUploadedImage(
   const metadataPath = path.join(imageDir, 'metadata.json');
   await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
 
+  console.log('[InkyStream] Image saved:', {
+    imageId,
+    imageDir,
+    metadataPath,
+    variants: variants.length,
+  });
+
   return metadata;
 }
 
@@ -232,8 +239,10 @@ export async function getCategoryImages(
  * Get all processed images across all categories
  */
 export async function getAllImages(): Promise<ImageMetadata[]> {
+  console.log('[InkyStream] getAllImages scanning:', IMAGES_DIR);
   try {
     const entries = await fs.readdir(IMAGES_DIR, { withFileTypes: true });
+    console.log('[InkyStream] Found entries:', entries.map(e => e.name));
     const allImages: ImageMetadata[] = [];
 
     for (const entry of entries) {
@@ -243,12 +252,14 @@ export async function getAllImages(): Promise<ImageMetadata[]> {
       }
     }
 
+    console.log('[InkyStream] Total images found:', allImages.length);
     // Sort by processed date (newest first)
     return allImages.sort(
       (a, b) =>
         new Date(b.processedAt).getTime() - new Date(a.processedAt).getTime()
     );
-  } catch {
+  } catch (error) {
+    console.error('[InkyStream] getAllImages error:', error);
     return [];
   }
 }
