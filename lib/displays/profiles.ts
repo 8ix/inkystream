@@ -7,8 +7,9 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import type { DisplayProfile, DisplaysConfig } from '@/lib/types/display';
 import type { RGB } from '@/lib/processors/dither';
+import { CONFIG_DIR } from '@/lib/utils/paths';
 
-const CONFIG_PATH = path.join(process.cwd(), 'config', 'displays.json');
+const CONFIG_PATH = path.join(CONFIG_DIR, 'displays.json');
 
 /**
  * Load all display profiles from the configuration file

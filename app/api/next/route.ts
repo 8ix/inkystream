@@ -5,8 +5,9 @@ import { getAllImages, getCategoryImages } from '@/lib/utils/image';
 import { displayExists } from '@/lib/displays/profiles';
 import { categoryExists } from '@/lib/utils/categories';
 import { requireApiKey, extractApiKey } from '@/lib/utils/auth';
+import { STATE_DIR } from '@/lib/utils/paths';
 
-const STATE_FILE = path.join(process.cwd(), '.current-state.json');
+const STATE_FILE = path.join(STATE_DIR, '.current-state.json');
 
 interface CurrentState {
   [key: string]: number;

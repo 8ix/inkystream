@@ -16,9 +16,8 @@ import { processWithDithering, DEFAULT_ENHANCEMENT_OPTIONS, type DitheringAlgori
 import { getDisplayProfile, hexToRgb } from '@/lib/displays/profiles';
 import { getDevice } from '@/lib/utils/devices';
 import { extractApiKey } from '@/lib/utils/auth';
+import { IMAGES_DIR } from '@/lib/utils/paths';
 
-// PRIVATE images directory - not in public/, served through API
-const IMAGES_DIR = path.join(process.cwd(), 'images');
 const THUMBNAIL_SIZE = 200;
 
 /**

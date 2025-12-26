@@ -6,9 +6,9 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import type { Category, CategoriesConfig } from '@/lib/types/category';
+import { CONFIG_DIR, IMAGES_DIR } from '@/lib/utils/paths';
 
-const CONFIG_PATH = path.join(process.cwd(), 'config', 'categories.json');
-const IMAGES_DIR = path.join(process.cwd(), 'images');
+const CONFIG_PATH = path.join(CONFIG_DIR, 'categories.json');
 
 /**
  * Load all categories from the configuration file

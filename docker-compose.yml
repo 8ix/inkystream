@@ -9,6 +9,7 @@ services:
     network_mode: bridge
     environment:
       - INKYSTREAM_API_KEY=${INKYSTREAM_API_KEY:-}
+      - INKYSTREAM_DATA_DIR=/app
       - PORT=3000
       - NODE_ENV=production
     volumes:

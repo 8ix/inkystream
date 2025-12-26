@@ -7,8 +7,9 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import type { Device, DevicesConfig, DevicePlatform } from '@/lib/types/device';
 import { getDisplayProfile } from '@/lib/displays/profiles';
+import { CONFIG_DIR } from '@/lib/utils/paths';
 
-const CONFIG_PATH = path.join(process.cwd(), 'config', 'devices.json');
+const CONFIG_PATH = path.join(CONFIG_DIR, 'devices.json');
 
 /**
  * Load all devices from the configuration file
