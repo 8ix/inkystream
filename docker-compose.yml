@@ -6,6 +6,7 @@ services:
       dockerfile: Dockerfile
     container_name: inkystream
     restart: unless-stopped
+    network_mode: bridge
     environment:
       - INKYSTREAM_API_KEY=${INKYSTREAM_API_KEY:-}
       - PORT=3000
@@ -13,21 +14,10 @@ services:
     volumes:
       - ./images:/app/images
       - ./config:/app/config
-    networks:
-      - traefik
     labels:
-      # Enable Traefik
       - "traefik.enable=true"
-      
-      # HTTPS Router - Fixed escaping
       - "traefik.http.routers.inkystream.rule=Host(`inkystream.andbert.com`)"
       - "traefik.http.routers.inkystream.entrypoints=websecure"
       - "traefik.http.routers.inkystream.tls=true"
       - "traefik.http.routers.inkystream.tls.certresolver=letsencrypt"
-      
-      # Service configuration
       - "traefik.http.services.inkystream.loadbalancer.server.port=3000"
-
-networks:
-  traefik:
-    external: true
