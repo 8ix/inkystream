@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllImages } from '@/lib/utils/image';
 
+// Force dynamic - this route reads from filesystem and must not be cached
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/images - Get all processed images across all categories
  * 

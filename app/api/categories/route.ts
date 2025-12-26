@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCategoriesWithCounts, createCategory } from '@/lib/utils/categories';
 import { requireApiKey } from '@/lib/utils/auth';
 
+// Force dynamic - this route reads from filesystem and must not be cached
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/categories - Lists all available categories
  * 

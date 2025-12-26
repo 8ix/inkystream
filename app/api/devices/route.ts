@@ -3,6 +3,9 @@ import { getDevices, createDevice } from '@/lib/utils/devices';
 import { displayExists } from '@/lib/displays/profiles';
 import type { DevicePlatform } from '@/lib/types/device';
 
+// Force dynamic - this route reads from filesystem and must not be cached
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/devices - Lists all configured devices
  * 
