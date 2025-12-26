@@ -1,6 +1,13 @@
 {
-  "devices": []
-
-
-
-
+  "devices": [
+    {
+      "id": "living-room",
+      "name": "Living Room",
+      "displayId": "inky_frame_7_spectra6",
+      "platform": "micropython-inky-frame",
+      "refreshIntervalSeconds": 3600,
+      "createdAt": "2025-12-26T20:19:06.269Z",
+      "lastSeenAt": "2025-12-26T20:20:12.986Z"
+    }
+  ]
+}

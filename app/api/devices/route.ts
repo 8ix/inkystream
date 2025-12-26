@@ -65,7 +65,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate platform if provided
-    if (platform && !['micropython', 'circuitpython', 'arduino', 'raspberry-pi'].includes(platform)) {
+    const validPlatforms = ['micropython-inky-frame', 'arduino-esp32', 'python-raspberry-pi', 'custom'];
+    if (platform && !validPlatforms.includes(platform)) {
       return NextResponse.json(
         { success: false, error: 'Invalid platform' },
         { status: 400 }
