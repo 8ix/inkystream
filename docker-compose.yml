@@ -11,10 +11,7 @@ services:
       - PORT=3000
       - NODE_ENV=production
     volumes:
-      # Persist images directory - user uploads and processed images
       - ./images:/app/images
-      # Persist config directory - categories, devices, and display configs
-      # These files persist across container rebuilds and updates
       - ./config:/app/config
     labels:
       # Enable Traefik
@@ -28,6 +25,3 @@ services:
       
       # Service configuration
       - "traefik.http.services.inkystream.loadbalancer.server.port=3000"
-      - "traefik.http.services.inkystream.loadbalancer.server.scheme=http"
-    # Use bridge network mode to connect to same network as Traefik
-    network_mode: bridge

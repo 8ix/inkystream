@@ -1145,7 +1145,7 @@ export async function processWithDithering(
     rgb[i * 3 + 2] = dithered[i * 4 + 2];
   }
 
-  // Create output PNG
+  // Create output JPEG (required for inky frame jpegdec library)
   return sharp(rgb, {
     raw: {
       width: info.width,
@@ -1153,7 +1153,7 @@ export async function processWithDithering(
       channels: 3,
     },
   })
-    .png()
+    .jpeg()
     .toBuffer();
 }
 

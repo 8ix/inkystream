@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
     
     // Find the variant that matches this display
     const variant = currentImage.variants.find((v) => v.displayId === displayId);
-    const filename = variant?.filename || `${displayId}.png`;
+    const filename = variant?.filename || `${displayId}.jpg`;
 
     // Build image URL with API key if present
     const apiKey = extractApiKey(request);

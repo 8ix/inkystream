@@ -13,7 +13,7 @@ describe('Image Utils', () => {
     it('should accept required parameters', async () => {
       // Current implementation is a placeholder, just verify it doesn't throw
       await expect(
-        processImage('input.png', 'output.png', {
+        processImage('input.png', 'output.jpg', {
           width: 800,
           height: 480,
         })
@@ -22,7 +22,7 @@ describe('Image Utils', () => {
 
     it('should accept optional dithering parameter', async () => {
       await expect(
-        processImage('input.png', 'output.png', {
+        processImage('input.png', 'output.jpg', {
           width: 800,
           height: 480,
           dithering: 'floyd-steinberg',
@@ -49,6 +49,7 @@ describe('Image Utils', () => {
     });
   });
 });
+
 
 
 

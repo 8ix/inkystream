@@ -85,7 +85,7 @@ export async function processImage(
         fit: 'cover',
         position: 'center',
       })
-      .png()
+      .jpeg()
       .toBuffer();
   }
 
@@ -154,8 +154,8 @@ export async function processUploadedImage(
       continue;
     }
 
-    // Store as {deviceId}.png
-    const outputFilename = `${deviceId}.png`;
+    // Store as {deviceId}.jpg (JPEG required for inky frame jpegdec library)
+    const outputFilename = `${deviceId}.jpg`;
     const outputPath = path.join(imageDir, outputFilename);
 
     await processImage(inputBuffer, outputPath, {
@@ -320,7 +320,7 @@ export function getImageUrlForDevice(
   deviceId: string,
   request?: NextRequest
 ): string {
-  const basePath = `/api/img/${categoryId}/${imageId}/${deviceId}.png`;
+  const basePath = `/api/img/${categoryId}/${imageId}/${deviceId}.jpg`;
   
   // If we have a request, extract the API key and include it in the URL
   if (request) {
