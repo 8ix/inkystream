@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Category } from '@/lib/types/category';
-import { Palette, Plus, Pencil, Trash2, X, Check, Image, Sparkles } from 'lucide-react';
+import { Palette, Plus, Pencil, Trash2, X, Check, Image as ImageIcon, Sparkles } from 'lucide-react';
 
 interface CategoryWithCount extends Category {
   imageCount: number;
@@ -408,7 +408,7 @@ export default function CategoryManager({ categories }: CategoryManagerProps) {
                         <div className="flex items-center gap-2">
                           <p className="font-semibold text-white">{category.name}</p>
                           <div className="flex items-center gap-1 px-2 py-0.5 bg-white/10 rounded-full">
-                            <Image className="w-3 h-3 text-white/50" />
+                            <ImageIcon className="w-3 h-3 text-white/50" />
                             <span className="text-xs text-white/50">{category.imageCount}</span>
                           </div>
                         </div>

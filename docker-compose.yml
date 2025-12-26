@@ -13,6 +13,8 @@ services:
     volumes:
       - ./images:/app/images
       - ./config:/app/config
+    networks:
+      - traefik
     labels:
       # Enable Traefik
       - "traefik.enable=true"
@@ -25,3 +27,7 @@ services:
       
       # Service configuration
       - "traefik.http.services.inkystream.loadbalancer.server.port=3000"
+
+networks:
+  traefik:
+    external: true

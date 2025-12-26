@@ -127,6 +127,7 @@ export default function ImageUpload({
                            border border-white/10 hover:border-[#ff47b3]/50 transition-all duration-300
                            hover:scale-[1.02] hover:shadow-lg hover:shadow-[#ff47b3]/10"
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={preview.preview}
                   alt={preview.file.name}

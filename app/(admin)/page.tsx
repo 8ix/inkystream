@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Upload, Image, Palette, Monitor } from 'lucide-react';
+import { Upload, Image as ImageIcon, Palette, Monitor } from 'lucide-react';
 
 export default function AdminDashboard() {
   return (
@@ -31,7 +31,7 @@ export default function AdminDashboard() {
         >
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 rounded-lg bg-gradient-to-br from-[#22d3ee] to-[#06b6d4]">
-              <Image className="w-6 h-6 text-white" />
+              <ImageIcon className="w-6 h-6 text-white" />
             </div>
             <h2 className="text-xl font-bold text-white">Gallery</h2>
           </div>

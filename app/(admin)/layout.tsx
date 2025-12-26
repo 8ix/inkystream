@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import NextImage from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Home, Upload, Image, Palette, Monitor } from 'lucide-react';
+import { Home, Upload, Image as ImageIcon, Palette, Monitor } from 'lucide-react';
 
 const navItems = [
   { href: '/', icon: Home, label: 'Dashboard' },
   { href: '/upload', icon: Upload, label: 'Upload' },
-  { href: '/gallery', icon: Image, label: 'Gallery' },
+  { href: '/gallery', icon: ImageIcon, label: 'Gallery' },
   { href: '/categories', icon: Palette, label: 'Categories' },
   { href: '/devices', icon: Monitor, label: 'Devices' },
 ];
@@ -35,10 +36,13 @@ export default function AdminLayout({
         {/* Logo */}
         <div className="p-5 pb-2">
           <Link href="/">
-            <img 
+            <NextImage 
               src="/inkstreamlogo.png" 
               alt="InkyStream" 
+              width={220}
+              height={60}
               className="w-full max-w-[220px] drop-shadow-lg"
+              priority
             />
           </Link>
         </div>

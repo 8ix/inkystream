@@ -124,6 +124,7 @@ export default function ImageGallery({
                          transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-[#ff47b3]/10"
               onClick={() => setSelectedImage(image)}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={thumbnailSrc}
                 alt={image.originalFilename}
@@ -197,6 +198,7 @@ export default function ImageGallery({
 
               {/* Image Preview */}
               <div className="p-6 flex justify-center bg-black/20">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={getImageApiUrl(selectedImage.categoryId, selectedImage.id, 'thumbnail.png')}
                   alt={selectedImage.originalFilename}
