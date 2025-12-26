@@ -35,19 +35,20 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 # Copy standalone output from builder
-# The standalone directory contains node_modules, server.js, and .next/server
 COPY --from=builder /app/.next/standalone ./
 
 # Copy public directory (not included in standalone output)
 COPY --from=builder /app/public ./public
 
+# Copy static files (not included in standalone output)
+COPY --from=builder /app/.next/static ./.next/static
+
 # Copy config directory (for build-time config, volume mount overrides at runtime)
 COPY --from=builder /app/config ./config
 
-# Create images directory for volume mount (not copied, as it's mounted at runtime)
+# Create images directory for volume mount
 RUN mkdir -p ./images
 
 EXPOSE 3000
 
-# Use the standalone server.js entry point
 CMD ["node", "server.js"]
