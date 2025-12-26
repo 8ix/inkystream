@@ -27,12 +27,12 @@ export interface CodeGenerationOptions {
  */
 function getInkyFrameDisplayConstant(displayId: string): string {
   const mapping: Record<string, string> = {
-    'inky_frame_7_spectra6': 'DISPLAY_INKY_FRAME_7_3',
-    'inky_frame_5_spectra6': 'DISPLAY_INKY_FRAME_5_7',
-    'inky_frame_4_spectra6': 'DISPLAY_INKY_FRAME_4_0',
+    'inky_frame_7_spectra6': 'DISPLAY_INKY_FRAME_SPECTRA_7',
+    'inky_frame_5_spectra6': 'DISPLAY_INKY_FRAME_SPECTRA_5',
+    'inky_frame_4_spectra6': 'DISPLAY_INKY_FRAME_SPECTRA_4',
   };
   
-  return mapping[displayId] || 'DISPLAY_INKY_FRAME_7_3';
+  return mapping[displayId] || 'DISPLAY_INKY_FRAME_SPECTRA_7';
 }
 
 /**
@@ -127,7 +127,7 @@ def download_and_display_image(image_url):
         response = urequests.get(image_url, timeout=30)
         
         # Save to temporary file
-        with open("/tmp/image.jpg", "wb") as f:
+        with open("temp_image.jpg", "wb") as f:
             f.write(response.content)
         response.close()
         
@@ -136,8 +136,8 @@ def download_and_display_image(image_url):
         graphics.clear()
         
         # Decode and display JPEG
-        jpeg.open_file("/tmp/image.jpg")
-        jpeg.decode(0, 0, jpegdec.JPEG_SCALE_NONE, jpegdec.JPEG_DITHER_NONE)
+        jpeg.open_file("temp_image.jpg")
+        jpeg.decode(0, 0)
         
         # Update display
         graphics.update()
