@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import DeviceManager from '@/components/DeviceManager';
 import type { Device } from '@/lib/types/device';
 import type { DisplayProfile } from '@/lib/types/display';
@@ -10,28 +10,28 @@ export default function DevicesPage() {
   const [displays, setDisplays] = useState<DisplayProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [devRes, dispRes] = await Promise.all([
-          fetch('/api/devices'),
-          fetch('/api/displays'),
-        ]);
+  const loadData = useCallback(async () => {
+    try {
+      const [devRes, dispRes] = await Promise.all([
+        fetch('/api/devices'),
+        fetch('/api/displays'),
+      ]);
 
-        const devData = await devRes.json();
-        const dispData = await dispRes.json();
+      const devData = await devRes.json();
+      const dispData = await dispRes.json();
 
-        if (devData.success) setDevices(devData.data || []);
-        if (dispData.success) setDisplays(dispData.data.displays || []);
-      } catch (error) {
-        console.error('Failed to load data:', error);
-      } finally {
-        setIsLoading(false);
-      }
+      if (devData.success) setDevices(devData.data || []);
+      if (dispData.success) setDisplays(dispData.data.displays || []);
+    } catch (error) {
+      console.error('Failed to load data:', error);
+    } finally {
+      setIsLoading(false);
     }
-
-    loadData();
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   if (isLoading) {
     return <div className="text-white">Loading...</div>;
@@ -43,7 +43,7 @@ export default function DevicesPage() {
         <h1 className="text-3xl font-bold text-white">Devices</h1>
         <p className="text-white/60">Manage your e-ink display devices</p>
       </div>
-      <DeviceManager devices={devices} displays={displays} />
+      <DeviceManager devices={devices} displays={displays} onRefresh={loadData} />
     </div>
   );
 }

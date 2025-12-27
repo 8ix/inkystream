@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import ImageGallery from '@/components/ImageGallery';
 import type { ImageMetadata } from '@/lib/types/image';
 import type { Category } from '@/lib/types/category';
@@ -12,31 +12,31 @@ export default function GalleryPage() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [imgRes, catRes, devRes] = await Promise.all([
-          fetch('/api/images'),
-          fetch('/api/categories'),
-          fetch('/api/devices'),
-        ]);
+  const loadData = useCallback(async () => {
+    try {
+      const [imgRes, catRes, devRes] = await Promise.all([
+        fetch('/api/images'),
+        fetch('/api/categories'),
+        fetch('/api/devices'),
+      ]);
 
-        const imgData = await imgRes.json();
-        const catData = await catRes.json();
-        const devData = await devRes.json();
+      const imgData = await imgRes.json();
+      const catData = await catRes.json();
+      const devData = await devRes.json();
 
-        if (imgData.success) setImages(imgData.data || []);
-        if (catData.success) setCategories(catData.data.categories || []);
-        if (devData.success) setDevices(devData.data || []);
-      } catch (error) {
-        console.error('Failed to load data:', error);
-      } finally {
-        setIsLoading(false);
-      }
+      if (imgData.success) setImages(imgData.data || []);
+      if (catData.success) setCategories(catData.data.categories || []);
+      if (devData.success) setDevices(devData.data || []);
+    } catch (error) {
+      console.error('Failed to load data:', error);
+    } finally {
+      setIsLoading(false);
     }
-
-    loadData();
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   if (isLoading) {
     return <div className="text-white">Loading...</div>;
@@ -48,7 +48,12 @@ export default function GalleryPage() {
         <h1 className="text-3xl font-bold text-white">Gallery</h1>
         <p className="text-white/60">Browse and manage your processed images</p>
       </div>
-      <ImageGallery images={images} categories={categories} devices={devices} />
+      <ImageGallery 
+        images={images} 
+        categories={categories} 
+        devices={devices} 
+        onRefresh={loadData}
+      />
     </div>
   );
 }

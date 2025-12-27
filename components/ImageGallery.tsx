@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import type { ImageMetadata } from '@/lib/types/image';
 import type { Category } from '@/lib/types/category';
 import type { Device } from '@/lib/types/device';
@@ -13,6 +12,7 @@ interface ImageGalleryProps {
   categories: Category[];
   devices?: Device[];
   currentDeviceId?: string;
+  onRefresh?: () => void;
 }
 
 /**
@@ -31,9 +31,9 @@ export default function ImageGallery({
   images, 
   categories, 
   devices = [],
-  currentDeviceId 
+  currentDeviceId,
+  onRefresh
 }: ImageGalleryProps) {
-  const router = useRouter();
   const [selectedImage, setSelectedImage] = useState<ImageMetadata | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -53,7 +53,10 @@ export default function ImageGallery({
       if (data.success) {
         setSelectedImage(null);
         setShowDeleteConfirm(false);
-        router.refresh();
+        // Refresh data after successful delete
+        if (onRefresh) {
+          onRefresh();
+        }
       } else {
         alert('Failed to delete image: ' + data.error);
       }

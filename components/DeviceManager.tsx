@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import type { Device, DevicePlatform } from '@/lib/types/device';
 import type { DisplayProfile } from '@/lib/types/display';
 import { Monitor, Plus, Pencil, Trash2, X, Check, Wifi, Sparkles, Code, Circle } from 'lucide-react';
@@ -12,13 +11,13 @@ import { suggestPlatform } from '@/lib/utils/frame-code';
 interface DeviceManagerProps {
   devices: Device[];
   displays: DisplayProfile[];
+  onRefresh?: () => void;
 }
 
 /**
  * Device Manager component for creating, editing, and deleting devices
  */
-export default function DeviceManager({ devices, displays }: DeviceManagerProps) {
-  const router = useRouter();
+export default function DeviceManager({ devices, displays, onRefresh }: DeviceManagerProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -146,7 +145,7 @@ export default function DeviceManager({ devices, displays }: DeviceManagerProps)
         setNewCodeTemplate('');
         setNewRefreshMinutes(60);
         setIsCreating(false);
-        router.refresh();
+        onRefresh?.();
       } else {
         setError(data.error || 'Failed to create device');
       }
@@ -204,7 +203,7 @@ export default function DeviceManager({ devices, displays }: DeviceManagerProps)
 
       if (data.success) {
         setEditingId(null);
-        router.refresh();
+        onRefresh?.();
       } else {
         setError(data.error || 'Failed to update device');
       }
@@ -236,7 +235,7 @@ export default function DeviceManager({ devices, displays }: DeviceManagerProps)
       if (data.success) {
         setShowDeleteConfirm(false);
         setDeviceToDelete(null);
-        router.refresh();
+        onRefresh?.();
       } else {
         setError(data.error || 'Failed to delete device');
       }
