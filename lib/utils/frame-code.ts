@@ -45,8 +45,8 @@ function generateMicroPythonCode(options: CodeGenerationOptions): string {
   const wifiSsid = overrides?.wifiSsid || 'YOUR_WIFI_SSID';
   const wifiPassword = overrides?.wifiPassword || 'YOUR_WIFI_PASSWORD';
   const refreshSeconds = overrides?.refreshIntervalSeconds ?? 3600;
+  const refreshMinutes = Math.round(refreshSeconds / 60);
   const includeApiKey = overrides?.includeApiKey ?? true;
-  const enableButtons = overrides?.enableButtons ?? false;
 
   return `# InkyStream Integration for Pimoroni Inky Frame
 # Device: ${device.name}
@@ -58,6 +58,7 @@ import urequests
 import ujson
 import jpegdec
 import time
+import gc
 from picographics import PicoGraphics, ${displayConstant} as DISPLAY
 
 # WiFi Configuration
@@ -68,12 +69,13 @@ WIFI_PASSWORD = "${wifiPassword}"
 API_BASE_URL = "${apiBaseUrl}"
 API_KEY = "${includeApiKey ? apiKeyValue : ''}"  # Set to empty to disable
 DEVICE_ID = "${device.id}"
-REFRESH_INTERVAL = ${refreshSeconds}  # Seconds
+REFRESH_INTERVAL_MINUTES = ${refreshMinutes}  # Minutes between updates
 
 # Initialize display
 graphics = PicoGraphics(DISPLAY)
 jpeg = jpegdec.JPEG(graphics)
 WIDTH, HEIGHT = graphics.get_bounds()
+
 
 def connect_wifi():
     """Connect to WiFi network"""
@@ -98,6 +100,7 @@ def connect_wifi():
         print("Failed to connect to WiFi")
         return False
 
+
 def get_image_url(endpoint="random"):
     """Fetch image URL from InkyStream API"""
     url = f"{API_BASE_URL}/api/devices/{DEVICE_ID}/{endpoint}"
@@ -110,7 +113,6 @@ def get_image_url(endpoint="random"):
         response.close()
         
         if data.get("success") and data.get("data", {}).get("imageUrl"):
-            # Image URL already includes API key if needed
             image_url = data["data"]["imageUrl"]
             if image_url.startswith("/"):
                 return API_BASE_URL + image_url
@@ -120,16 +122,24 @@ def get_image_url(endpoint="random"):
     
     return None
 
+
 def download_and_display_image(image_url):
     """Download image and display on e-ink screen"""
     try:
         print(f"Downloading image from {image_url}...")
+        
+        # Free up memory before download
+        gc.collect()
+        
         response = urequests.get(image_url, timeout=30)
         
         # Save to temporary file
         with open("temp_image.jpg", "wb") as f:
             f.write(response.content)
         response.close()
+        
+        # Free up memory after download
+        gc.collect()
         
         # Clear display
         graphics.set_pen(15)  # White
@@ -142,6 +152,7 @@ def download_and_display_image(image_url):
         # Update display
         graphics.update()
         print("Display updated successfully!")
+        return True
         
     except Exception as e:
         print(f"Error displaying image: {e}")
@@ -151,42 +162,30 @@ def download_and_display_image(image_url):
         graphics.set_pen(15)  # White
         graphics.text("Error loading image", 10, 10, scale=2)
         graphics.update()
+        return False
+
 
 def main():
-    """Main loop"""
+    """Main - fetch image then sleep"""
+    # Turn on busy LED to show we're working
+    inky_frame.led_busy.on()
+    
     # Connect to WiFi
-    if not connect_wifi():
-        return
-    
-    # Initial image
-    image_url = get_image_url("random")
-    if image_url:
-        download_and_display_image(image_url)
-    
-    # Main loop - update periodically
-    while True:
-        time.sleep(REFRESH_INTERVAL)
-        image_url = get_image_url("next")  # Rotate to next image
-        if image_url:
-            download_and_display_image(image_url)
-
-${enableButtons ? `
-# Optional: Button controls
-from pimoroni import Button
-button_a = Button(12)  # Adjust pins for your board
-button_b = Button(13)
-
-while True:
-    if button_a.read():
+    if connect_wifi():
+        # Fetch and display image
         image_url = get_image_url("next")
         if image_url:
             download_and_display_image(image_url)
-    if button_b.read():
-        image_url = get_image_url("random")
-        if image_url:
-            download_and_display_image(image_url)
-    time.sleep(0.1)
-` : ''}
+    
+    # Turn off busy LED
+    inky_frame.led_busy.off()
+    
+    # Deep sleep until next update
+    # On battery: powers off completely, RTC wakes it up
+    # On USB: falls back to regular time.sleep()
+    print(f"Sleeping for {REFRESH_INTERVAL_MINUTES} minutes...")
+    inky_frame.sleep_for(REFRESH_INTERVAL_MINUTES)
+
 
 if __name__ == "__main__":
     main()
