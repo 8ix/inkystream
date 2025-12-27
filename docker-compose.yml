@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - CACHE_BUST=2025-01-02-v4
+        - CACHE_BUST=2025-01-02-v5
     container_name: inkystream
     restart: unless-stopped
     network_mode: bridge

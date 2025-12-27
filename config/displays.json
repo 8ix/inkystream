@@ -6,7 +6,7 @@
       "description": "Pimoroni Inky Frame 7.3\" with 6-colour Spectra display (800×480)",
       "width": 800,
       "height": 480,
-      "palette": ["#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00"],
+      "palette": ["#000000", "#FFFFFF", "#A02020", "#F0E050", "#608050", "#5080B8"],
       "manufacturer": "Pimoroni",
       "defaultDithering": "floyd-steinberg"
     },
@@ -16,7 +16,7 @@
       "description": "Pimoroni Inky Frame 5.7\" with 6-colour Spectra display (600×448)",
       "width": 600,
       "height": 448,
-      "palette": ["#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00"],
+      "palette": ["#000000", "#FFFFFF", "#A02020", "#F0E050", "#608050", "#5080B8"],
       "manufacturer": "Pimoroni",
       "defaultDithering": "floyd-steinberg"
     },
@@ -26,7 +26,7 @@
       "description": "Pimoroni Inky Frame 4\" with 6-colour Spectra display (640×400)",
       "width": 640,
       "height": 400,
-      "palette": ["#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00"],
+      "palette": ["#000000", "#FFFFFF", "#A02020", "#F0E050", "#608050", "#5080B8"],
       "manufacturer": "Pimoroni",
       "defaultDithering": "floyd-steinberg"
     },

@@ -6,11 +6,11 @@ import type { Category } from '@/lib/types/category';
 import type { Device } from '@/lib/types/device';
 import type { DisplayProfile } from '@/lib/types/display';
 import { 
-  IMAGE_TYPE_PRESETS,
-  IMAGE_TYPES,
+  PHOTO_CATEGORY_PRESETS,
+  PHOTO_CATEGORIES,
   FIT_MODE_OPTIONS,
-  createEnhancementFromPreset,
-  type ImageType,
+  createEnhancementFromCategory,
+  type PhotoCategory,
   type DitheringAlgorithm,
   type EnhancementOptions,
   type FitMode,
@@ -34,8 +34,8 @@ export interface ProcessingOptions {
 }
 
 /**
- * Simplified form component for image processing
- * Users select what type of image they're uploading, and we handle the rest
+ * Form component for image processing with photo category selection
+ * Users select what type of photo they're uploading for optimized processing
  */
 export default function ProcessingForm({
   categories,
@@ -45,14 +45,14 @@ export default function ProcessingForm({
   isProcessing,
   hasFiles,
 }: ProcessingFormProps) {
-  const [imageType, setImageType] = useState<ImageType>('photograph');
+  const [photoCategory, setPhotoCategory] = useState<PhotoCategory>('auto');
   const [categoryId, setCategoryId] = useState('');
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [fitMode, setFitMode] = useState<FitMode>('smart');
   const [backgroundColor, setBackgroundColor] = useState('#FFFFFF');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const selectedPreset = IMAGE_TYPE_PRESETS[imageType];
+  const selectedPreset = PHOTO_CATEGORY_PRESETS[photoCategory];
 
   // Auto-select first category if none selected and categories are available
   useEffect(() => {
@@ -84,12 +84,12 @@ export default function ProcessingForm({
     e.preventDefault();
     if (!categoryId || selectedDevices.length === 0) return;
 
-    const enhancement = createEnhancementFromPreset(selectedPreset, fitMode, backgroundColor);
+    const enhancement = createEnhancementFromCategory(selectedPreset, fitMode, backgroundColor);
 
     onSubmit({
       categoryId,
       deviceIds: selectedDevices,
-      dithering: selectedPreset.algorithm,
+      dithering: selectedPreset.dithering.algorithm,
       enhancement,
     });
   };
@@ -98,21 +98,21 @@ export default function ProcessingForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Image Type Selection - The main question */}
+      {/* Photo Category Selection */}
       <div>
         <label className="ink-label flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-[#ff47b3]" />
-          What are you uploading?
+          What type of photo is this?
         </label>
         <div className="grid grid-cols-2 gap-3 mt-3">
-          {IMAGE_TYPES.map((type) => {
-            const preset = IMAGE_TYPE_PRESETS[type];
-            const isSelected = imageType === type;
+          {PHOTO_CATEGORIES.map((cat) => {
+            const preset = PHOTO_CATEGORY_PRESETS[cat];
+            const isSelected = photoCategory === cat;
             return (
               <button
-                key={type}
+                key={cat}
                 type="button"
-                onClick={() => setImageType(type)}
+                onClick={() => setPhotoCategory(cat)}
                 disabled={isProcessing}
                 className={`p-4 rounded-xl text-left transition-all duration-200 ${
                   isSelected
@@ -135,10 +135,11 @@ export default function ProcessingForm({
             {selectedPreset.description}
           </p>
           <p className="text-xs text-white/40 mt-1">
-            Using {selectedPreset.algorithm.charAt(0).toUpperCase() + selectedPreset.algorithm.slice(1).replace('-', ' ')} algorithm
-            {selectedPreset.saturation > 1 && ` • +${Math.round((selectedPreset.saturation - 1) * 100)}% saturation`}
-            {selectedPreset.denoise && ' • Noise reduction'}
-            {selectedPreset.sharpen && ' • Sharpening'}
+            {selectedPreset.dithering.algorithm.charAt(0).toUpperCase() + selectedPreset.dithering.algorithm.slice(1).replace('-', ' ')} dithering
+            {selectedPreset.contrast > 1 && ` • +${Math.round((selectedPreset.contrast - 1) * 100)}% contrast`}
+            {selectedPreset.saturation > 1 && !selectedPreset.useBwPalette && ` • +${Math.round((selectedPreset.saturation - 1) * 100)}% saturation`}
+            {selectedPreset.useBwPalette && ' • B&W palette'}
+            {selectedPreset.addGradientNoise && ' • Gradient smoothing'}
           </p>
         </div>
       </div>

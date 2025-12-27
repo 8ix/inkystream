@@ -14,6 +14,11 @@ export {
   DEFAULT_ENHANCEMENT_OPTIONS,
   FIT_MODES,
   FIT_MODE_OPTIONS,
+  // New photo category system
+  PHOTO_CATEGORIES,
+  PHOTO_CATEGORY_PRESETS,
+  createEnhancementFromCategory,
+  // Legacy image types (kept for compatibility)
   IMAGE_TYPES,
   IMAGE_TYPE_PRESETS,
   createEnhancementFromPreset,
@@ -23,12 +28,48 @@ export {
   type OKLab,
   type EnhancementOptions,
   type FitMode,
+  type PhotoCategory,
+  type PhotoCategoryPreset,
   type ImageType,
   type ImageTypePreset,
 } from './dither-types';
 
 import type { DitheringAlgorithm, RGB, LAB, OKLab, EnhancementOptions, FitMode } from './dither-types';
 import { DEFAULT_ENHANCEMENT_OPTIONS } from './dither-types';
+
+/**
+ * Detect if an image is already monochrome (grayscale)
+ * Returns true if the image has very low color saturation
+ * Used to determine if B&W category should preserve or convert
+ */
+export async function isMonochrome(buffer: Buffer): Promise<boolean> {
+  try {
+    const stats = await sharp(buffer).stats();
+    
+    // Check if R, G, B channels have very similar means
+    // For a true grayscale image, all channels should be nearly identical
+    const means = stats.channels.slice(0, 3).map(c => c.mean);
+    const maxDiff = Math.max(
+      Math.abs(means[0] - means[1]),
+      Math.abs(means[1] - means[2]),
+      Math.abs(means[0] - means[2])
+    );
+    
+    // Also check standard deviations are similar
+    const stds = stats.channels.slice(0, 3).map(c => c.stdev);
+    const stdDiff = Math.max(
+      Math.abs(stds[0] - stds[1]),
+      Math.abs(stds[1] - stds[2]),
+      Math.abs(stds[0] - stds[2])
+    );
+    
+    // If channel means differ by less than 5 and stdevs by less than 3,
+    // the image is effectively monochrome
+    return maxDiff < 5 && stdDiff < 3;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Analyze if rotating the image would provide a better fit
@@ -1011,21 +1052,145 @@ function addNoiseToSolidRegions(
 }
 
 /**
+ * Apply contrast adjustment to pixels
+ * Uses linear adjustment: output = (input - 128) * contrast + 128
+ */
+function applyContrast(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+  contrast: number
+): Uint8ClampedArray {
+  if (contrast === 1.0) return pixels;
+  
+  const output = new Uint8ClampedArray(pixels);
+  for (let i = 0; i < width * height; i++) {
+    const idx = i * 4;
+    output[idx] = clamp((pixels[idx] - 128) * contrast + 128);
+    output[idx + 1] = clamp((pixels[idx + 1] - 128) * contrast + 128);
+    output[idx + 2] = clamp((pixels[idx + 2] - 128) * contrast + 128);
+  }
+  return output;
+}
+
+/**
+ * Convert image to grayscale using luminosity method
+ * Weights: R=0.2126, G=0.7152, B=0.0722 (ITU-R BT.709)
+ */
+function convertToGrayscale(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number
+): Uint8ClampedArray {
+  const output = new Uint8ClampedArray(pixels);
+  for (let i = 0; i < width * height; i++) {
+    const idx = i * 4;
+    const gray = Math.round(
+      pixels[idx] * 0.2126 +
+      pixels[idx + 1] * 0.7152 +
+      pixels[idx + 2] * 0.0722
+    );
+    output[idx] = gray;
+    output[idx + 1] = gray;
+    output[idx + 2] = gray;
+  }
+  return output;
+}
+
+/**
+ * Apply dithering with configurable diffusion strength
+ * Diffusion controls how much error is spread (0.0-1.0)
+ */
+function applyFloydSteinbergWithDiffusion(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+  palette: RGB[],
+  diffusion: number = 1.0
+): Uint8ClampedArray {
+  const output = new Uint8ClampedArray(pixels);
+
+  for (let y = 0; y < height; y++) {
+    const leftToRight = y % 2 === 0;
+    const startX = leftToRight ? 0 : width - 1;
+    const endX = leftToRight ? width : -1;
+    const stepX = leftToRight ? 1 : -1;
+
+    for (let x = startX; x !== endX; x += stepX) {
+      const idx = (y * width + x) * 4;
+
+      const oldColor: RGB = {
+        r: output[idx],
+        g: output[idx + 1],
+        b: output[idx + 2],
+      };
+
+      const newColor = findNearestColor(oldColor, palette);
+
+      output[idx] = newColor.r;
+      output[idx + 1] = newColor.g;
+      output[idx + 2] = newColor.b;
+
+      // Scale error by diffusion strength
+      const errR = (oldColor.r - newColor.r) * diffusion;
+      const errG = (oldColor.g - newColor.g) * diffusion;
+      const errB = (oldColor.b - newColor.b) * diffusion;
+
+      const forward = stepX;
+      
+      const nextX = x + forward;
+      if (nextX >= 0 && nextX < width) {
+        const i = (y * width + nextX) * 4;
+        output[i] = clamp(output[i] + (errR * 7) / 16);
+        output[i + 1] = clamp(output[i + 1] + (errG * 7) / 16);
+        output[i + 2] = clamp(output[i + 2] + (errB * 7) / 16);
+      }
+
+      if (y + 1 < height) {
+        const backX = x - forward;
+        if (backX >= 0 && backX < width) {
+          const i = ((y + 1) * width + backX) * 4;
+          output[i] = clamp(output[i] + (errR * 3) / 16);
+          output[i + 1] = clamp(output[i + 1] + (errG * 3) / 16);
+          output[i + 2] = clamp(output[i + 2] + (errB * 3) / 16);
+        }
+
+        const iBottom = ((y + 1) * width + x) * 4;
+        output[iBottom] = clamp(output[iBottom] + (errR * 5) / 16);
+        output[iBottom + 1] = clamp(output[iBottom + 1] + (errG * 5) / 16);
+        output[iBottom + 2] = clamp(output[iBottom + 2] + (errB * 5) / 16);
+
+        if (nextX >= 0 && nextX < width) {
+          const i = ((y + 1) * width + nextX) * 4;
+          output[i] = clamp(output[i] + (errR * 1) / 16);
+          output[i + 1] = clamp(output[i + 1] + (errG * 1) / 16);
+          output[i + 2] = clamp(output[i + 2] + (errB * 1) / 16);
+        }
+      }
+    }
+  }
+
+  return output;
+}
+
+/**
  * Process image with dithering using Sharp
- * Pipeline:
+ * Enhanced pipeline with community-tested settings:
  * 1. Smart resize/fit (auto-rotation, cover/contain)
- * 2. Contrast normalization (optional)
- * 3. Saturation boost for e-ink
- * 4. Noise reduction (optional)
- * 5. Sharpening (optional)
- * 6. Error-diffusion dithering with CIELAB color matching
+ * 2. Gamma correction for e-ink
+ * 3. Contrast adjustment
+ * 4. Saturation boost
+ * 5. Gradient noise (for sky regions)
+ * 6. Sharpening with configurable radius/amount
+ * 7. B&W conversion (if useBwPalette)
+ * 8. Error-diffusion dithering with configurable diffusion
  */
 export async function processWithDithering(
   inputBuffer: Buffer,
   width: number,
   height: number,
   palette: RGB[],
-  algorithm: DitheringAlgorithm = 'stucki',
+  algorithm: DitheringAlgorithm = 'floyd-steinberg',
   enhancement: EnhancementOptions = DEFAULT_ENHANCEMENT_OPTIONS
 ): Promise<Buffer> {
   // Get source image metadata to determine dimensions
@@ -1060,29 +1225,28 @@ export async function processWithDithering(
     pipeline = pipeline.flatten({ background: bgColor });
   }
 
-  // Apply contrast enhancement
-  if (enhancement.autoContrast) {
-    pipeline = pipeline.normalize();
+  // Apply gamma correction for e-ink display
+  // E-ink displays typically need gamma 1.8-2.2 for proper brightness
+  const gamma = enhancement.gamma || 2.0;
+  if (gamma !== 1.0) {
+    pipeline = pipeline.gamma(gamma);
   }
 
   // Boost saturation - e-ink displays mute colors significantly
-  if (enhancement.saturation !== 1.0) {
+  // Skip for B&W mode
+  if (!enhancement.useBwPalette && enhancement.saturation !== 1.0) {
     pipeline = pipeline.modulate({
       saturation: enhancement.saturation,
     });
   }
 
-  // Apply median filter for denoising
-  if (enhancement.denoise) {
-    pipeline = pipeline.median(3);
-  }
-
-  // Sharpen to restore edges lost from smoothing and resize
-  if (enhancement.sharpen) {
+  // Apply sharpening with configurable parameters
+  const sharpening = enhancement.sharpening || { radius: 0.7, amount: 0.6 };
+  if (sharpening.amount > 0) {
     pipeline = pipeline.sharpen({
-      sigma: 0.8,
-      m1: 1.2,
-      m2: 0.7,
+      sigma: sharpening.radius,
+      m1: sharpening.amount * 2,  // flat areas
+      m2: sharpening.amount,       // jagged areas
     });
   }
 
@@ -1107,34 +1271,60 @@ export async function processWithDithering(
     pixels = new Uint8ClampedArray(data);
   }
 
-  // For contain/letterbox mode, add subtle noise to help dithering create patterns
-  // on solid color regions (like letterbox bars) so they match the e-ink aesthetic
+  // Apply contrast adjustment
+  const contrast = enhancement.contrast || 1.0;
+  if (contrast !== 1.0) {
+    pixels = applyContrast(pixels, info.width, info.height, contrast);
+  }
+
+  // Add gradient noise (helps with sky banding)
+  if (enhancement.addGradientNoise) {
+    pixels = addNoiseToSolidRegions(pixels, info.width, info.height, 4);
+  }
+
+  // For contain/letterbox mode, add subtle noise to letterbox bars
   if (fit === 'contain') {
     pixels = addNoiseToSolidRegions(pixels, info.width, info.height, 6);
   }
 
+  // Convert to grayscale if using B&W palette
+  if (enhancement.useBwPalette) {
+    pixels = convertToGrayscale(pixels, info.width, info.height);
+  }
+
+  // Determine which palette to use
+  const effectivePalette = enhancement.useBwPalette 
+    ? [{ r: 0, g: 0, b: 0 }, { r: 255, g: 255, b: 255 }]
+    : palette;
+
+  // Get diffusion strength from enhancement options
+  const diffusion = enhancement.dithering?.diffusion ?? 0.8;
+  const ditherAlgorithm = enhancement.dithering?.algorithm || algorithm;
+
   // ============================================
-  // Apply dithering algorithm with OKLab color matching
+  // Apply dithering algorithm with configurable diffusion
   // ============================================
   let dithered: Uint8ClampedArray;
-  switch (algorithm) {
+  switch (ditherAlgorithm) {
     case 'stucki':
-      // Recommended for photographs - smoothest gradients
-      dithered = applyStucki(pixels, info.width, info.height, palette);
+      dithered = applyStucki(pixels, info.width, info.height, effectivePalette);
       break;
     case 'floyd-steinberg':
-      dithered = applyFloydSteinberg(pixels, info.width, info.height, palette);
+      // Use configurable diffusion for Floyd-Steinberg
+      dithered = applyFloydSteinbergWithDiffusion(
+        pixels, info.width, info.height, effectivePalette, diffusion
+      );
       break;
     case 'atkinson':
-      // High contrast, punchy look - good for graphics
-      dithered = applyAtkinson(pixels, info.width, info.height, palette);
+      dithered = applyAtkinson(pixels, info.width, info.height, effectivePalette);
       break;
     case 'ordered':
-      // Fastest, but shows visible patterns
-      dithered = applyOrdered(pixels, info.width, info.height, palette);
+      dithered = applyOrdered(pixels, info.width, info.height, effectivePalette);
       break;
     default:
-      dithered = applyStucki(pixels, info.width, info.height, palette);
+      dithered = applyFloydSteinbergWithDiffusion(
+        pixels, info.width, info.height, effectivePalette, diffusion
+      );
   }
 
   // Convert back to RGB for Sharp
@@ -1145,7 +1335,8 @@ export async function processWithDithering(
     rgb[i * 3 + 2] = dithered[i * 4 + 2];
   }
 
-  // Create output JPEG (required for inky frame jpegdec library)
+  // Create output JPEG with configurable quality
+  const jpegQuality = enhancement.jpegQuality || 70;
   return sharp(rgb, {
     raw: {
       width: info.width,
@@ -1153,7 +1344,7 @@ export async function processWithDithering(
       channels: 3,
     },
   })
-    .jpeg()
+    .jpeg({ quality: jpegQuality })
     .toBuffer();
 }
 
