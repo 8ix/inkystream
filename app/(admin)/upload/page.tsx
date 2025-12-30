@@ -4,10 +4,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ImageUpload from '@/components/ImageUpload';
 import ProcessingForm, { type ProcessingOptions } from '@/components/ProcessingForm';
+import ImageEditor from '@/components/ImageEditor';
+import Portal from '@/components/Portal';
 import type { Category } from '@/lib/types/category';
 import type { Device } from '@/lib/types/device';
 import type { DisplayProfile } from '@/lib/types/display';
-import { CheckCircle, AlertCircle, Upload, Sparkles, Info } from 'lucide-react';
+import type { ImageAdjustments } from '@/lib/client/image-processing';
+import { CheckCircle, AlertCircle, Upload, Sparkles, Info, Sliders } from 'lucide-react';
 
 /**
  * Upload page - simplified image upload and processing for e-ink displays
@@ -24,6 +27,11 @@ export default function UploadPage() {
     failed: number;
     errors: string[];
   } | null>(null);
+  
+  // Image editor state
+  const [showEditor, setShowEditor] = useState(false);
+  const [editingFileIndex, setEditingFileIndex] = useState(0);
+  const [customAdjustments, setCustomAdjustments] = useState<ImageAdjustments | null>(null);
 
   // Load categories, devices, and displays
   useEffect(() => {
@@ -50,11 +58,45 @@ export default function UploadPage() {
     loadData();
   }, []);
 
+  // Get the first device's display for the editor preview
+  const getEditorDisplay = (): DisplayProfile | null => {
+    if (devices.length === 0) return displays[0] || null;
+    const firstDevice = devices[0];
+    return displays.find(d => d.id === firstDevice.displayId) || displays[0] || null;
+  };
+
+  const handleOpenEditor = (fileIndex: number = 0) => {
+    setEditingFileIndex(fileIndex);
+    setShowEditor(true);
+  };
+
+  const handleEditorConfirm = (adjustments: ImageAdjustments) => {
+    setCustomAdjustments(adjustments);
+    setShowEditor(false);
+  };
+
+  const handleEditorCancel = () => {
+    setShowEditor(false);
+  };
+
   const handleProcess = async (options: ProcessingOptions) => {
     if (files.length === 0) return;
 
     setIsProcessing(true);
     setResults(null);
+
+    // Merge custom adjustments with the enhancement options
+    const enhancement = { ...options.enhancement };
+    if (customAdjustments) {
+      // Convert ImageAdjustments (0-200 scale) to enhancement options (multiplier scale)
+      enhancement.saturation = (customAdjustments.saturation / 100) * (enhancement.saturation || 1);
+      enhancement.contrast = (customAdjustments.contrast / 100) * (enhancement.contrast || 1);
+      // Add brightness as gamma adjustment (inverse relationship)
+      if (customAdjustments.brightness !== 100) {
+        const brightnessMultiplier = customAdjustments.brightness / 100;
+        enhancement.gamma = (enhancement.gamma || 2.0) / brightnessMultiplier;
+      }
+    }
 
     const formData = new FormData();
     files.forEach((file) => {
@@ -63,7 +105,7 @@ export default function UploadPage() {
     formData.append('categoryId', options.categoryId);
     formData.append('deviceIds', JSON.stringify(options.deviceIds));
     formData.append('dithering', options.dithering);
-    formData.append('enhancement', JSON.stringify(options.enhancement));
+    formData.append('enhancement', JSON.stringify(enhancement));
 
     try {
       const response = await fetch('/api/process', {
@@ -80,6 +122,7 @@ export default function UploadPage() {
           errors: data.data.errors || [],
         });
         setFiles([]);
+        setCustomAdjustments(null);
       } else {
         setResults({
           success: 0,
@@ -97,6 +140,8 @@ export default function UploadPage() {
       setIsProcessing(false);
     }
   };
+
+  const editorDisplay = getEditorDisplay();
 
   return (
     <div className="space-y-8">
@@ -167,6 +212,27 @@ export default function UploadPage() {
             onFilesSelected={setFiles}
             maxFiles={10}
           />
+          
+          {/* Preview & Adjust Button */}
+          {files.length > 0 && editorDisplay && (
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <button
+                onClick={() => handleOpenEditor(0)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl
+                           bg-gradient-to-r from-[#22d3ee]/20 to-[#a855f7]/20 
+                           border border-[#22d3ee]/30 hover:border-[#22d3ee]/50
+                           text-white font-medium transition-all hover:scale-[1.02]"
+              >
+                <Sliders className="w-4 h-4" />
+                Preview & Adjust Colors
+              </button>
+              {customAdjustments && (
+                <p className="text-xs text-center text-[#22d3ee] mt-2">
+                  ✓ Custom adjustments applied
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Processing Options */}
@@ -192,7 +258,7 @@ export default function UploadPage() {
           <Info className="w-5 h-5 text-[#22d3ee]" />
           <h3 className="font-bold text-white">How It Works</h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
           <div className="p-4 rounded-xl bg-black/20 border border-white/10">
             <div className="text-2xl mb-2">1️⃣</div>
             <p className="font-medium text-white mb-1">Upload your images</p>
@@ -200,16 +266,50 @@ export default function UploadPage() {
           </div>
           <div className="p-4 rounded-xl bg-black/20 border border-white/10">
             <div className="text-2xl mb-2">2️⃣</div>
-            <p className="font-medium text-white mb-1">Tell us what it is</p>
-            <p className="text-white/50">We&apos;ll automatically apply the best settings for your content</p>
+            <p className="font-medium text-white mb-1">Preview & adjust</p>
+            <p className="text-white/50">Optional: fine-tune saturation, contrast & brightness</p>
           </div>
           <div className="p-4 rounded-xl bg-black/20 border border-white/10">
             <div className="text-2xl mb-2">3️⃣</div>
+            <p className="font-medium text-white mb-1">Tell us what it is</p>
+            <p className="text-white/50">We&apos;ll apply the best settings for your content</p>
+          </div>
+          <div className="p-4 rounded-xl bg-black/20 border border-white/10">
+            <div className="text-2xl mb-2">4️⃣</div>
             <p className="font-medium text-white mb-1">Choose your devices</p>
-            <p className="text-white/50">We&apos;ll create optimized versions for each e-ink display</p>
+            <p className="text-white/50">We&apos;ll create optimized versions for each display</p>
           </div>
         </div>
       </div>
+
+      {/* Image Editor Modal */}
+      {showEditor && files[editingFileIndex] && editorDisplay && (
+        <Portal>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              onClick={handleEditorCancel}
+            />
+            
+            {/* Modal */}
+            <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto
+                            bg-gradient-to-br from-[#1a1a2e] to-[#16213e] 
+                            rounded-2xl border border-white/10 shadow-2xl">
+              <div className="p-6">
+                <ImageEditor
+                  file={files[editingFileIndex]}
+                  palette={editorDisplay.palette}
+                  targetWidth={editorDisplay.width}
+                  targetHeight={editorDisplay.height}
+                  onConfirm={handleEditorConfirm}
+                  onCancel={handleEditorCancel}
+                />
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
     </div>
   );
 }
