@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { promises as fs } from 'fs';
+import path from 'path';
 import { getAllImages, getCategoryImages, getImageUrlForDevice } from '@/lib/utils/image';
 import { getDevice, touchDeviceLastSeen } from '@/lib/utils/devices';
 import { categoryExists } from '@/lib/utils/categories';
 import { requireApiKey } from '@/lib/utils/auth';
+import { STATE_DIR } from '@/lib/utils/paths';
 
 interface RouteParams {
   params: Promise<{
@@ -10,8 +13,32 @@ interface RouteParams {
   }>;
 }
 
+// State file for tracking recently shown images (to avoid repeats)
+const RECENT_STATE_FILE = path.join(STATE_DIR, '.device-recent-state.json');
+
+interface RecentState {
+  [deviceKey: string]: {
+    recentIds: string[];  // Last N image IDs shown
+  };
+}
+
+async function getRecentState(): Promise<RecentState> {
+  try {
+    const content = await fs.readFile(RECENT_STATE_FILE, 'utf-8');
+    return JSON.parse(content);
+  } catch {
+    return {};
+  }
+}
+
+async function saveRecentState(state: RecentState): Promise<void> {
+  await fs.writeFile(RECENT_STATE_FILE, JSON.stringify(state, null, 2));
+}
+
 /**
  * GET /api/devices/[deviceId]/random - Returns a random image for a device
+ * 
+ * Avoids showing recently displayed images until all images have been shown.
  * 
  * Authentication: Requires API key via ?key= parameter or Authorization header
  * 
@@ -69,9 +96,32 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Select random image
-    const randomIndex = Math.floor(Math.random() * validImages.length);
-    const randomImage = validImages[randomIndex];
+    // Load recent state
+    const state = await getRecentState();
+    const stateKey = categoryId ? `${deviceId}:${categoryId}` : deviceId;
+    let deviceState = state[stateKey] || { recentIds: [] };
+
+    // Filter out recently shown images (keep track of all but one to ensure variety)
+    const maxRecent = Math.max(0, validImages.length - 1);
+    const recentIds = deviceState.recentIds.slice(0, maxRecent);
+    
+    // Get images that haven't been shown recently
+    let availableImages = validImages.filter(img => !recentIds.includes(img.id));
+    
+    // If all images have been shown (or only one image exists), reset and use all
+    if (availableImages.length === 0) {
+      availableImages = validImages;
+      deviceState.recentIds = [];
+    }
+
+    // Select random image from available pool
+    const randomIndex = Math.floor(Math.random() * availableImages.length);
+    const randomImage = availableImages[randomIndex];
+
+    // Add to recent list and save
+    deviceState.recentIds = [randomImage.id, ...deviceState.recentIds].slice(0, maxRecent);
+    state[stateKey] = deviceState;
+    await saveRecentState(state);
 
     // Record last seen
     await touchDeviceLastSeen(deviceId);

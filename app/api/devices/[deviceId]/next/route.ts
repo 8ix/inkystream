@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { promises as fs } from 'fs';
+import path from 'path';
 import { getAllImages, getCategoryImages, getImageUrlForDevice } from '@/lib/utils/image';
 import { getDevice, touchDeviceLastSeen } from '@/lib/utils/devices';
 import { categoryExists } from '@/lib/utils/categories';
 import { requireApiKey } from '@/lib/utils/auth';
+import { STATE_DIR } from '@/lib/utils/paths';
 
 interface RouteParams {
   params: Promise<{
@@ -10,11 +13,47 @@ interface RouteParams {
   }>;
 }
 
-// Simple in-memory store for current image index per device
-const deviceImageIndex: Map<string, number> = new Map();
+// State file for shuffled image queues per device
+const SHUFFLE_STATE_FILE = path.join(STATE_DIR, '.device-shuffle-state.json');
+
+interface ShuffleState {
+  [deviceKey: string]: {
+    queue: string[];  // Array of image IDs in shuffled order
+    position: number; // Current position in the queue
+    imageCount: number; // Total images when queue was created (to detect changes)
+  };
+}
 
 /**
- * GET /api/devices/[deviceId]/next - Returns the next image in sequence for a device
+ * Fisher-Yates shuffle algorithm for truly random ordering
+ */
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+async function getShuffleState(): Promise<ShuffleState> {
+  try {
+    const content = await fs.readFile(SHUFFLE_STATE_FILE, 'utf-8');
+    return JSON.parse(content);
+  } catch {
+    return {};
+  }
+}
+
+async function saveShuffleState(state: ShuffleState): Promise<void> {
+  await fs.writeFile(SHUFFLE_STATE_FILE, JSON.stringify(state, null, 2));
+}
+
+/**
+ * GET /api/devices/[deviceId]/next - Returns the next image in a shuffled sequence
+ * 
+ * Uses Fisher-Yates shuffle to ensure all images are shown before any repeats.
+ * State is persisted to survive server restarts.
  * 
  * Authentication: Requires API key via ?key= parameter or Authorization header
  * 
@@ -72,19 +111,70 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Get and increment index
-    const cacheKey = categoryId ? `${deviceId}:${categoryId}` : deviceId;
-    let currentIndex = deviceImageIndex.get(cacheKey) || 0;
+    // Get current image IDs for comparison
+    const currentImageIds = validImages.map(img => img.id);
     
-    // Wrap around if needed
-    if (currentIndex >= validImages.length) {
-      currentIndex = 0;
+    // Load shuffle state
+    const state = await getShuffleState();
+    const stateKey = categoryId ? `${deviceId}:${categoryId}` : deviceId;
+    let deviceState = state[stateKey];
+
+    // Check if we need to create or refresh the shuffle queue
+    const needsReshuffle = !deviceState || 
+      deviceState.position >= deviceState.queue.length ||
+      deviceState.imageCount !== currentImageIds.length ||
+      // Check if images have changed (new images added or removed)
+      !deviceState.queue.every(id => currentImageIds.includes(id));
+
+    if (needsReshuffle) {
+      // Create a new shuffled queue
+      const shuffledIds = shuffleArray(currentImageIds);
+      deviceState = {
+        queue: shuffledIds,
+        position: 0,
+        imageCount: currentImageIds.length,
+      };
+      console.log(`[InkyStream] Reshuffled queue for ${stateKey}: ${shuffledIds.length} images`);
     }
 
-    const nextImage = validImages[currentIndex];
-    
-    // Increment for next call
-    deviceImageIndex.set(cacheKey, (currentIndex + 1) % validImages.length);
+    // Get the next image ID from the shuffled queue
+    const nextImageId = deviceState.queue[deviceState.position];
+    const nextImage = validImages.find(img => img.id === nextImageId);
+
+    if (!nextImage) {
+      // This shouldn't happen, but handle gracefully by reshuffling
+      const shuffledIds = shuffleArray(currentImageIds);
+      deviceState = {
+        queue: shuffledIds,
+        position: 0,
+        imageCount: currentImageIds.length,
+      };
+      const fallbackImage = validImages.find(img => img.id === shuffledIds[0])!;
+      
+      state[stateKey] = { ...deviceState, position: 1 };
+      await saveShuffleState(state);
+      await touchDeviceLastSeen(deviceId);
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          imageUrl: getImageUrlForDevice(fallbackImage.categoryId, fallbackImage.id, deviceId, request),
+          imageId: fallbackImage.id,
+          categoryId: fallbackImage.categoryId,
+          deviceId,
+          deviceName: device.name,
+          position: 1,
+          totalImages: validImages.length,
+        },
+      });
+    }
+
+    // Increment position for next call
+    state[stateKey] = {
+      ...deviceState,
+      position: deviceState.position + 1,
+    };
+    await saveShuffleState(state);
 
     // Record last seen
     await touchDeviceLastSeen(deviceId);
@@ -97,7 +187,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         categoryId: nextImage.categoryId,
         deviceId,
         deviceName: device.name,
-        index: currentIndex,
+        position: deviceState.position + 1,
         totalImages: validImages.length,
       },
     });
