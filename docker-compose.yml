@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - CACHE_BUST=2025-01-02-v8
+        - CACHE_BUST=2025-01-02-v9
     container_name: inkystream
     restart: unless-stopped
     network_mode: bridge
@@ -19,7 +19,7 @@ services:
       - ./config:/app/config
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.inkystream.rule=Host(`inkystream.andbert.com`)"
+      - "traefik.http.routers.inkystream.rule=Host(`${DOMAIN:-inkystream.local}`)"
       - "traefik.http.routers.inkystream.entrypoints=websecure"
       - "traefik.http.routers.inkystream.tls=true"
       - "traefik.http.routers.inkystream.tls.certresolver=letsencrypt"
