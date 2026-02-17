@@ -8,34 +8,19 @@
 
 import sharp from 'sharp';
 
-// Re-export types for convenience in server-side code
+// Re-export core types for convenience in server-side code
 export {
   DITHERING_ALGORITHMS,
-  DEFAULT_ENHANCEMENT_OPTIONS,
   FIT_MODES,
   FIT_MODE_OPTIONS,
-  // New photo category system
-  PHOTO_CATEGORIES,
-  PHOTO_CATEGORY_PRESETS,
-  createEnhancementFromCategory,
-  // Legacy image types (kept for compatibility)
-  IMAGE_TYPES,
-  IMAGE_TYPE_PRESETS,
-  createEnhancementFromPreset,
   type DitheringAlgorithm,
   type RGB,
   type LAB,
   type OKLab,
-  type EnhancementOptions,
   type FitMode,
-  type PhotoCategory,
-  type PhotoCategoryPreset,
-  type ImageType,
-  type ImageTypePreset,
 } from './dither-types';
 
-import type { DitheringAlgorithm, RGB, LAB, OKLab, EnhancementOptions, FitMode } from './dither-types';
-import { DEFAULT_ENHANCEMENT_OPTIONS } from './dither-types';
+import type { DitheringAlgorithm, RGB, LAB, OKLab, FitMode } from './dither-types';
 
 /**
  * Detect if an image is already monochrome (grayscale)
@@ -1191,7 +1176,8 @@ export async function processWithDithering(
   height: number,
   palette: RGB[],
   algorithm: DitheringAlgorithm = 'floyd-steinberg',
-  enhancement: EnhancementOptions = DEFAULT_ENHANCEMENT_OPTIONS
+  fitMode: FitMode = 'smart',
+  backgroundColor: string = '#FFFFFF'
 ): Promise<Buffer> {
   // Get source image metadata to determine dimensions
   const metadata = await sharp(inputBuffer).metadata();
@@ -1199,7 +1185,6 @@ export async function processWithDithering(
   const srcHeight = metadata.height || height;
   
   // Determine the best fit strategy
-  const fitMode = enhancement.fitMode || 'smart';
   const { rotate, fit } = determineBestFit(srcWidth, srcHeight, width, height, fitMode);
   
   // Start building the pipeline
@@ -1211,7 +1196,7 @@ export async function processWithDithering(
   }
   
   // Parse background color for letterboxing
-  const bgColor = hexToRgbValues(enhancement.backgroundColor || '#FFFFFF');
+  const bgColor = hexToRgbValues(backgroundColor || '#FFFFFF');
   
   // Apply the resize with appropriate fit mode
   pipeline = pipeline.resize(width, height, {
@@ -1223,31 +1208,6 @@ export async function processWithDithering(
   // For 'contain' mode, we need to extend/flatten to fill the frame with background
   if (fit === 'contain') {
     pipeline = pipeline.flatten({ background: bgColor });
-  }
-
-  // Apply gamma correction for e-ink display
-  // E-ink displays typically need gamma 1.8-2.2 for proper brightness
-  const gamma = enhancement.gamma || 2.0;
-  if (gamma !== 1.0) {
-    pipeline = pipeline.gamma(gamma);
-  }
-
-  // Boost saturation - e-ink displays mute colors significantly
-  // Skip for B&W mode
-  if (!enhancement.useBwPalette && enhancement.saturation !== 1.0) {
-    pipeline = pipeline.modulate({
-      saturation: enhancement.saturation,
-    });
-  }
-
-  // Apply sharpening with configurable parameters
-  const sharpening = enhancement.sharpening || { radius: 0.7, amount: 0.6 };
-  if (sharpening.amount > 0) {
-    pipeline = pipeline.sharpen({
-      sigma: sharpening.radius,
-      m1: sharpening.amount * 2,  // flat areas
-      m2: sharpening.amount,       // jagged areas
-    });
   }
 
   // Get raw pixel data
@@ -1271,35 +1231,10 @@ export async function processWithDithering(
     pixels = new Uint8ClampedArray(data);
   }
 
-  // Apply contrast adjustment
-  const contrast = enhancement.contrast || 1.0;
-  if (contrast !== 1.0) {
-    pixels = applyContrast(pixels, info.width, info.height, contrast);
-  }
-
-  // Add gradient noise (helps with sky banding)
-  if (enhancement.addGradientNoise) {
-    pixels = addNoiseToSolidRegions(pixels, info.width, info.height, 4);
-  }
-
-  // For contain/letterbox mode, add subtle noise to letterbox bars
-  if (fit === 'contain') {
-    pixels = addNoiseToSolidRegions(pixels, info.width, info.height, 6);
-  }
-
-  // Convert to grayscale if using B&W palette
-  if (enhancement.useBwPalette) {
-    pixels = convertToGrayscale(pixels, info.width, info.height);
-  }
-
-  // Determine which palette to use
-  const effectivePalette = enhancement.useBwPalette 
-    ? [{ r: 0, g: 0, b: 0 }, { r: 255, g: 255, b: 255 }]
-    : palette;
-
-  // Get diffusion strength from enhancement options
-  const diffusion = enhancement.dithering?.diffusion ?? 0.8;
-  const ditherAlgorithm = enhancement.dithering?.algorithm || algorithm;
+  // Determine which palette and diffusion to use
+  const effectivePalette = palette;
+  const diffusion = 0.8;
+  const ditherAlgorithm = algorithm;
 
   // ============================================
   // Apply dithering algorithm with configurable diffusion

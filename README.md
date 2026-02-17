@@ -254,13 +254,6 @@ See [Frame Configuration Guide](docs/user-guide/frame-configuration.md) for comp
 - **Fill Frame (Cover)** - Fills entire frame, may crop edges
 - **Fit Entire Image (Contain)** - Shows whole image with letterboxing
 
-### Enhancement Options
-
-- **Auto Contrast** - Automatically adjust levels
-- **Saturation Boost** - Make colors more vivid for e-ink
-- **Noise Reduction** - Reduce speckling in gradients
-- **Sharpening** - Restore edge clarity
-
 ### Dithering Algorithms
 
 - **Floyd-Steinberg** - Best for photos (recommended)

@@ -5,10 +5,7 @@ import type { ImageMetadata } from '@/lib/types/image';
 import type { Category } from '@/lib/types/category';
 import type { Device } from '@/lib/types/device';
 import type { DisplayProfile } from '@/lib/types/display';
-import type { ImageAdjustments } from '@/lib/client/image-processing';
-import { Image as ImageIcon, X, Download, Trash2, Eye, Monitor, Calendar, FileImage, Sliders, RefreshCw, Loader2 } from 'lucide-react';
-import Portal from './Portal';
-import ImageEditor from './ImageEditor';
+import { Image as ImageIcon, X, Download, Trash2, Eye, Monitor, Calendar, FileImage, RefreshCw, Loader2 } from 'lucide-react';
 
 interface ImageGalleryProps {
   images: ImageMetadata[];
@@ -42,10 +39,8 @@ export default function ImageGallery({
   const [selectedImage, setSelectedImage] = useState<ImageMetadata | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showEditor, setShowEditor] = useState(false);
   const [canReprocess, setCanReprocess] = useState(false);
   const [isReprocessing, setIsReprocessing] = useState(false);
-  const [sourceFile, setSourceFile] = useState<File | null>(null);
   const [loadingSource, setLoadingSource] = useState(false);
 
   // Check if selected image can be reprocessed
@@ -68,48 +63,11 @@ export default function ImageGallery({
     checkReprocess();
   }, [selectedImage]);
 
-  // Get display for the selected image's first device
-  const getEditorDisplay = (): DisplayProfile | null => {
-    if (!selectedImage || displays.length === 0) return displays[0] || null;
-    const firstVariant = selectedImage.variants[0];
-    if (!firstVariant) return displays[0] || null;
-    return displays.find(d => d.id === firstVariant.displayId) || displays[0] || null;
-  };
-
-  const handleOpenEditor = async () => {
+  const handleReprocess = async () => {
     if (!selectedImage || !canReprocess) return;
 
-    setLoadingSource(true);
-    try {
-      // Fetch the source image as a File
-      const sourceUrl = `/api/img/${selectedImage.categoryId}/${selectedImage.id}/source.jpg`;
-      const response = await fetch(sourceUrl);
-      const blob = await response.blob();
-      const file = new File([blob], selectedImage.originalFilename, { type: 'image/jpeg' });
-      setSourceFile(file);
-      setShowEditor(true);
-    } catch (error) {
-      console.error('Failed to load source image:', error);
-      alert('Failed to load source image for editing');
-    } finally {
-      setLoadingSource(false);
-    }
-  };
-
-  const handleEditorConfirm = async (adjustments: ImageAdjustments) => {
-    if (!selectedImage) return;
-
-    setShowEditor(false);
     setIsReprocessing(true);
-
     try {
-      // Convert adjustments to enhancement options
-      const enhancement = {
-        saturation: adjustments.saturation / 100,
-        contrast: adjustments.contrast / 100,
-        gamma: 2.0 / (adjustments.brightness / 100),
-      };
-
       const response = await fetch(
         `/api/images/${selectedImage.categoryId}/${selectedImage.id}/reprocess`,
         {
@@ -118,7 +76,6 @@ export default function ImageGallery({
           body: JSON.stringify({
             deviceIds: selectedImage.variants.map(v => v.deviceId),
             dithering: 'floyd-steinberg',
-            enhancement,
           }),
         }
       );
@@ -135,13 +92,7 @@ export default function ImageGallery({
       alert('An error occurred while re-processing');
     } finally {
       setIsReprocessing(false);
-      setSourceFile(null);
     }
-  };
-
-  const handleEditorCancel = () => {
-    setShowEditor(false);
-    setSourceFile(null);
   };
 
   const handleDelete = async () => {
@@ -214,7 +165,7 @@ export default function ImageGallery({
   }
 
   return (
-    <>
+    <div className="space-y-6">
       {/* Image Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {images.map((image) => {
@@ -261,21 +212,20 @@ export default function ImageGallery({
 
       {/* Full Screen Image Detail Modal */}
       {selectedImage && (
-        <Portal>
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 lg:p-8"
+          onClick={() => setSelectedImage(null)}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          
+          {/* Modal Content */}
           <div
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 lg:p-8"
-            onClick={() => setSelectedImage(null)}
+            className="relative w-full max-w-5xl max-h-[90vh] overflow-auto rounded-2xl
+                       bg-gradient-to-b from-[#531153] to-[#3d0d3d] border border-white/20
+                       shadow-2xl shadow-[#ff47b3]/20"
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-            
-            {/* Modal Content */}
-            <div
-              className="relative w-full max-w-5xl max-h-[90vh] overflow-auto rounded-2xl
-                         bg-gradient-to-b from-[#531153] to-[#3d0d3d] border border-white/20
-                         shadow-2xl shadow-[#ff47b3]/20"
-              onClick={(e) => e.stopPropagation()}
-            >
               {/* Modal Header */}
               <div className="sticky top-0 z-10 flex items-center justify-between p-5 
                               bg-gradient-to-b from-[#531153] to-transparent backdrop-blur-sm border-b border-white/10">
@@ -408,19 +358,19 @@ export default function ImageGallery({
                 {/* Re-process button */}
                 {canReprocess && displays.length > 0 && (
                   <button
-                    onClick={handleOpenEditor}
-                    disabled={loadingSource || isReprocessing}
+                    onClick={handleReprocess}
+                    disabled={isReprocessing}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold
                                bg-[#22d3ee]/20 text-[#22d3ee] border border-[#22d3ee]/30
                                hover:bg-[#22d3ee]/30 transition-colors
                                disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {loadingSource || isReprocessing ? (
+                    {isReprocessing ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      <Sliders className="w-4 h-4" />
+                      <RefreshCw className="w-4 h-4" />
                     )}
-                    {isReprocessing ? 'Processing...' : 'Edit & Re-process'}
+                    {isReprocessing ? 'Processing...' : 'Re-process'}
                   </button>
                 )}
                 
@@ -439,94 +389,58 @@ export default function ImageGallery({
               </div>
             </div>
           </div>
-        </Portal>
+        </div>
       )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && selectedImage && (
-        <Portal>
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          
+          {/* Modal Content */}
           <div
-            className="fixed inset-0 z-[110] flex items-center justify-center p-4"
-            onClick={() => setShowDeleteConfirm(false)}
+            className="relative w-full max-w-md p-6 rounded-2xl
+                       bg-gradient-to-b from-[#531153] to-[#3d0d3d] border border-white/20
+                       shadow-2xl shadow-red-500/20"
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-            
-            {/* Modal Content */}
-            <div
-              className="relative w-full max-w-md p-6 rounded-2xl
-                         bg-gradient-to-b from-[#531153] to-[#3d0d3d] border border-white/20
-                         shadow-2xl shadow-red-500/20"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center
-                              bg-red-500/20 border border-red-500/30">
-                <Trash2 className="w-8 h-8 text-red-400" />
-              </div>
-              <h3 className="text-xl font-bold text-white text-center mb-2">
-                Delete Image?
-              </h3>
-              <p className="text-white/60 text-center mb-6">
-                Are you sure you want to delete <span className="text-white font-medium">&quot;{selectedImage.originalFilename}&quot;</span>?
-                This action cannot be undone.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 ink-button-secondary"
-                  disabled={isDeleting}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="flex-1 px-4 py-2.5 rounded-xl font-semibold
-                             bg-red-500 text-white hover:bg-red-600 transition-colors
-                             disabled:opacity-50"
-                >
-                  {isDeleting ? 'Deleting...' : 'Delete'}
-                </button>
-              </div>
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center
+                            bg-red-500/20 border border-red-500/30">
+              <Trash2 className="w-8 h-8 text-red-400" />
+            </div>
+            <h3 className="text-xl font-bold text-white text-center mb-2">
+              Delete Image?
+            </h3>
+            <p className="text-white/60 text-center mb-6">
+              Are you sure you want to delete <span className="text-white font-medium">&quot;{selectedImage.originalFilename}&quot;</span>?
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 ink-button-secondary"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2.5 rounded-xl font-semibold
+                           bg-red-500 text-white hover:bg-red-600 transition-colors
+                           disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
             </div>
           </div>
-        </Portal>
+        </div>
       )}
 
-      {/* Image Editor Modal */}
-      {showEditor && sourceFile && selectedImage && (
-        <Portal>
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <div 
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-              onClick={handleEditorCancel}
-            />
-            
-            {/* Modal */}
-            <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto
-                            bg-gradient-to-br from-[#1a1a2e] to-[#16213e] 
-                            rounded-2xl border border-white/10 shadow-2xl">
-              <div className="p-6">
-                {(() => {
-                  const editorDisplay = getEditorDisplay();
-                  if (!editorDisplay) return <p className="text-white">No display configured</p>;
-                  return (
-                    <ImageEditor
-                      file={sourceFile}
-                      palette={editorDisplay.palette}
-                      targetWidth={editorDisplay.width}
-                      targetHeight={editorDisplay.height}
-                      onConfirm={handleEditorConfirm}
-                      onCancel={handleEditorCancel}
-                    />
-                  );
-                })()}
-              </div>
-            </div>
-          </div>
-        </Portal>
-      )}
-    </>
+    </div>
   );
 }

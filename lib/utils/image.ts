@@ -12,7 +12,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { NextRequest } from 'next/server';
 import type { ImageMetadata, ImageVariant } from '@/lib/types/image';
-import { processWithDithering, DEFAULT_ENHANCEMENT_OPTIONS, type DitheringAlgorithm, type RGB, type EnhancementOptions } from '@/lib/processors/dither';
+import { processWithDithering, type DitheringAlgorithm, type RGB, type FitMode } from '@/lib/processors/dither';
 import { getDisplayProfile, hexToRgb } from '@/lib/displays/profiles';
 import { getDevice } from '@/lib/utils/devices';
 import { extractApiKey } from '@/lib/utils/auth';
@@ -53,7 +53,8 @@ export async function processImage(
     height: number;
     dithering?: DitheringAlgorithm;
     palette?: string[];
-    enhancement?: EnhancementOptions;
+    fitMode?: FitMode;
+    backgroundColor?: string;
   }
 ): Promise<void> {
   const { 
@@ -61,7 +62,8 @@ export async function processImage(
     height, 
     dithering = 'floyd-steinberg', 
     palette,
-    enhancement = DEFAULT_ENHANCEMENT_OPTIONS,
+    fitMode = 'smart',
+    backgroundColor = '#FFFFFF',
   } = options;
 
   let outputBuffer: Buffer;
@@ -75,7 +77,8 @@ export async function processImage(
       height,
       rgbPalette,
       dithering,
-      enhancement
+      fitMode,
+      backgroundColor
     );
   } else {
     // Simple resize without dithering
@@ -124,7 +127,8 @@ export async function processUploadedImage(
   categoryId: string,
   deviceIds: string[],
   dithering: DitheringAlgorithm = 'floyd-steinberg',
-  enhancement: EnhancementOptions = DEFAULT_ENHANCEMENT_OPTIONS
+  fitMode: FitMode = 'smart',
+  backgroundColor: string = '#FFFFFF'
 ): Promise<ImageMetadata> {
   const imageId = uuidv4();
   const imageDir = path.join(IMAGES_DIR, categoryId, imageId);
@@ -168,7 +172,8 @@ export async function processUploadedImage(
       height: display.height,
       dithering,
       palette: display.palette,
-      enhancement,
+      fitMode,
+      backgroundColor,
     });
 
     variants.push({
@@ -235,8 +240,7 @@ export async function reprocessImage(
   categoryId: string,
   imageId: string,
   deviceIds: string[],
-  dithering: DitheringAlgorithm = 'floyd-steinberg',
-  enhancement: EnhancementOptions = DEFAULT_ENHANCEMENT_OPTIONS
+  dithering: DitheringAlgorithm = 'floyd-steinberg'
 ): Promise<ImageMetadata | null> {
   const imageDir = path.join(IMAGES_DIR, categoryId, imageId);
   const sourcePath = path.join(imageDir, 'source.jpg');
@@ -283,7 +287,6 @@ export async function reprocessImage(
       height: display.height,
       dithering,
       palette: display.palette,
-      enhancement,
     });
 
     variants.push({

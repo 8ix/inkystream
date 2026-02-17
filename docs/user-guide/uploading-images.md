@@ -72,45 +72,18 @@ Click **Upload** in the navigation bar or go to `http://localhost:3000/upload`.
 - Ordered: Better for graphics with sharp edges
 - Atkinson: Good for high-contrast images
 
-### Step 4: Enhancement Options (Advanced)
-
-Click "Image Enhancement Options" to reveal advanced settings:
-
-**Auto Contrast**
-- Automatically adjusts contrast and levels
-- Recommended for most images
-
-**Saturation Boost**
-- Increases color vibrancy
-- E-ink displays benefit from boosted colors
-- Default: 20% boost
-
-**Noise Reduction**
-- Reduces speckling in gradients
-- Helps with smooth skies and backgrounds
-
-**Sharpening**
-- Restores edge clarity after resizing
-- Compensates for noise reduction softening
-
-**Letterbox Background**
-- Choose the color for letterbox bars
-- Only applies when Fit Entire Image is used
-- White and Black presets available
-
-### Step 5: Process
+### Step 4: Process
 
 Click **Process** to start image processing.
 
 **Processing steps**:
 1. Image is rotated if Smart Fit determines it's beneficial
 2. Image is resized to device dimensions
-3. Enhancement options are applied
-4. Colors are reduced to display palette
-5. Dithering is applied for smooth gradients
-6. Variants are saved for each selected device
-7. Thumbnail is generated
-8. Metadata is created
+3. Colors are reduced to the display palette
+4. Dithering is applied for smooth gradients
+5. Variants are saved for each selected device
+6. Thumbnail is generated
+7. Metadata is created
 
 ### Step 6: Review
 

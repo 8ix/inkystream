@@ -16,7 +16,6 @@ import {
 
 import {
   DITHERING_ALGORITHMS,
-  DEFAULT_ENHANCEMENT_OPTIONS,
   type RGB,
 } from '@/lib/processors/dither-types';
 
@@ -108,24 +107,6 @@ describe('Dithering', () => {
       const distance = perceptualColorDistance(red, green);
 
       expect(distance).toBeGreaterThan(50);
-    });
-  });
-
-  describe('DEFAULT_ENHANCEMENT_OPTIONS', () => {
-    it('should have autoContrast enabled by default', () => {
-      expect(DEFAULT_ENHANCEMENT_OPTIONS.autoContrast).toBe(true);
-    });
-
-    it('should have saturation boost by default', () => {
-      expect(DEFAULT_ENHANCEMENT_OPTIONS.saturation).toBe(1.2);
-    });
-
-    it('should have denoise enabled by default', () => {
-      expect(DEFAULT_ENHANCEMENT_OPTIONS.denoise).toBe(true);
-    });
-
-    it('should have sharpen enabled by default', () => {
-      expect(DEFAULT_ENHANCEMENT_OPTIONS.sharpen).toBe(true);
     });
   });
 

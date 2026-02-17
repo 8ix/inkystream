@@ -6,16 +6,11 @@ import type { Category } from '@/lib/types/category';
 import type { Device } from '@/lib/types/device';
 import type { DisplayProfile } from '@/lib/types/display';
 import { 
-  PHOTO_CATEGORY_PRESETS,
-  PHOTO_CATEGORIES,
   FIT_MODE_OPTIONS,
-  createEnhancementFromCategory,
-  type PhotoCategory,
   type DitheringAlgorithm,
-  type EnhancementOptions,
   type FitMode,
 } from '@/lib/processors/dither-types';
-import { Monitor, Plus, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { Monitor, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ProcessingFormProps {
   categories: Category[];
@@ -30,7 +25,8 @@ export interface ProcessingOptions {
   categoryId: string;
   deviceIds: string[];
   dithering: DitheringAlgorithm;
-  enhancement: EnhancementOptions;
+  fitMode: FitMode;
+  backgroundColor: string;
 }
 
 /**
@@ -45,14 +41,11 @@ export default function ProcessingForm({
   isProcessing,
   hasFiles,
 }: ProcessingFormProps) {
-  const [photoCategory, setPhotoCategory] = useState<PhotoCategory>('auto');
   const [categoryId, setCategoryId] = useState('');
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [fitMode, setFitMode] = useState<FitMode>('smart');
   const [backgroundColor, setBackgroundColor] = useState('#FFFFFF');
   const [showAdvanced, setShowAdvanced] = useState(false);
-
-  const selectedPreset = PHOTO_CATEGORY_PRESETS[photoCategory];
 
   // Auto-select first category if none selected and categories are available
   useEffect(() => {
@@ -84,13 +77,12 @@ export default function ProcessingForm({
     e.preventDefault();
     if (!categoryId || selectedDevices.length === 0) return;
 
-    const enhancement = createEnhancementFromCategory(selectedPreset, fitMode, backgroundColor);
-
     onSubmit({
       categoryId,
       deviceIds: selectedDevices,
-      dithering: selectedPreset.dithering.algorithm,
-      enhancement,
+      dithering: 'floyd-steinberg',
+      fitMode,
+      backgroundColor,
     });
   };
 
@@ -98,52 +90,6 @@ export default function ProcessingForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Photo Category Selection */}
-      <div>
-        <label className="ink-label flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-[#ff47b3]" />
-          What type of photo is this?
-        </label>
-        <div className="grid grid-cols-2 gap-3 mt-3">
-          {PHOTO_CATEGORIES.map((cat) => {
-            const preset = PHOTO_CATEGORY_PRESETS[cat];
-            const isSelected = photoCategory === cat;
-            return (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setPhotoCategory(cat)}
-                disabled={isProcessing}
-                className={`p-4 rounded-xl text-left transition-all duration-200 ${
-                  isSelected
-                    ? 'bg-gradient-to-br from-[#ff47b3]/30 to-[#a855f7]/30 border-2 border-[#ff47b3] scale-[1.02]'
-                    : 'bg-black/20 border border-white/10 hover:border-white/30'
-                }`}
-              >
-                <div className="text-2xl mb-2">{preset.icon}</div>
-                <p className="font-bold text-white text-sm">{preset.label}</p>
-                <p className="text-xs text-white/50 mt-1 line-clamp-2">{preset.examples}</p>
-              </button>
-            );
-          })}
-        </div>
-        
-        {/* Show what settings will be used */}
-        <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-[#ff47b3]/10 to-[#a855f7]/10 border border-[#ff47b3]/20">
-          <p className="text-xs text-white/70">
-            <span className="text-[#ff47b3] font-medium">Optimized for {selectedPreset.label}:</span>{' '}
-            {selectedPreset.description}
-          </p>
-          <p className="text-xs text-white/40 mt-1">
-            {selectedPreset.dithering.algorithm.charAt(0).toUpperCase() + selectedPreset.dithering.algorithm.slice(1).replace('-', ' ')} dithering
-            {selectedPreset.contrast > 1 && ` • +${Math.round((selectedPreset.contrast - 1) * 100)}% contrast`}
-            {selectedPreset.saturation > 1 && !selectedPreset.useBwPalette && ` • +${Math.round((selectedPreset.saturation - 1) * 100)}% saturation`}
-            {selectedPreset.useBwPalette && ' • B&W palette'}
-            {selectedPreset.addGradientNoise && ' • Gradient smoothing'}
-          </p>
-        </div>
-      </div>
-
       {/* Category Selection */}
       <div>
         <label htmlFor="category" className="ink-label">
@@ -340,7 +286,7 @@ export default function ProcessingForm({
             Processing...
           </span>
         ) : (
-          `Process as ${selectedPreset.label}`
+          'Process images'
         )}
       </button>
 

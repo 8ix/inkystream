@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { processUploadedImage } from '@/lib/utils/image';
 import { categoryExists } from '@/lib/utils/categories';
 import { getDevice } from '@/lib/utils/devices';
-import { DEFAULT_ENHANCEMENT_OPTIONS, type DitheringAlgorithm, type EnhancementOptions } from '@/lib/processors/dither';
+import type { DitheringAlgorithm } from '@/lib/processors/dither';
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -18,17 +18,8 @@ export async function POST(request: NextRequest) {
     const categoryId = formData.get('categoryId') as string;
     const deviceIdsJson = formData.get('deviceIds') as string;
     const dithering = (formData.get('dithering') as DitheringAlgorithm) || 'floyd-steinberg';
-    const enhancementJson = formData.get('enhancement') as string;
-    
-    // Parse enhancement options or use defaults
-    let enhancement: EnhancementOptions = DEFAULT_ENHANCEMENT_OPTIONS;
-    if (enhancementJson) {
-      try {
-        enhancement = JSON.parse(enhancementJson);
-      } catch {
-        // Use defaults if parsing fails
-      }
-    }
+    const fitMode = (formData.get('fitMode') as any) || 'smart';
+    const backgroundColor = (formData.get('backgroundColor') as string) || '#FFFFFF';
 
     // Validate inputs
     if (!files || files.length === 0) {
@@ -117,7 +108,8 @@ export async function POST(request: NextRequest) {
           categoryId,
           deviceIds,
           dithering,
-          enhancement
+          fitMode,
+          backgroundColor
         );
 
         results.processed++;

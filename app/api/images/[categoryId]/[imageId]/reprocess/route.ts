@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { reprocessImage, hasSourceImage } from '@/lib/utils/image';
 import { getDevices } from '@/lib/utils/devices';
-import { DEFAULT_ENHANCEMENT_OPTIONS, type DitheringAlgorithm, type EnhancementOptions } from '@/lib/processors/dither-types';
+import type { DitheringAlgorithm } from '@/lib/processors/dither-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,18 +36,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const body = await request.json();
     const { 
       deviceIds, 
-      dithering = 'floyd-steinberg', 
-      enhancement: partialEnhancement = {} 
+      dithering = 'floyd-steinberg'
     } = body as {
       deviceIds?: string[];
       dithering?: DitheringAlgorithm;
-      enhancement?: Partial<EnhancementOptions>;
-    };
-
-    // Merge with defaults
-    const enhancement: EnhancementOptions = {
-      ...DEFAULT_ENHANCEMENT_OPTIONS,
-      ...partialEnhancement,
     };
 
     // If no deviceIds provided, use all configured devices
@@ -69,8 +61,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       categoryId,
       imageId,
       targetDeviceIds,
-      dithering,
-      enhancement
+      dithering
     );
 
     if (!metadata) {
