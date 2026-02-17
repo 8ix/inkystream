@@ -134,7 +134,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         position: 0,
         imageCount: currentImageIds.length,
       };
-      console.log(`[InkyStream] Reshuffled queue for ${stateKey}: ${shuffledIds.length} images`);
     }
 
     // Get the next image ID from the shuffled queue

@@ -31,7 +31,6 @@ Welcome to the InkyStream documentation. This guide will help you understand, se
 ## Quick Links
 
 - [Main README](../README.md) - Project overview and quick start
-- [Project Brief](./plan/plan.md) - Original project specification
 
 ## Getting Help
 

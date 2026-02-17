@@ -13,10 +13,3 @@ export const IMAGES_DIR = path.join(DATA_DIR, 'images');
 export const CONFIG_DIR = path.join(DATA_DIR, 'config');
 export const STATE_DIR = DATA_DIR;
 
-// Log paths on first import for debugging
-console.log('[InkyStream] Data directories:', {
-  DATA_DIR,
-  IMAGES_DIR,
-  CONFIG_DIR,
-});
-

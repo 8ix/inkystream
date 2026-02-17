@@ -110,6 +110,8 @@ InkyStream protects your personal photos with API key authentication.
 
 ### Using the API Key
 
+InkyStream never stores your API key in the repository. Configure it **only** via environment variables (e.g. `.env.local`, Vercel env vars, or Docker `.env`) and never commit those files.
+
 Include the key in your requests:
 
 ```bash
@@ -151,13 +153,13 @@ inkystream/
 
 ### Authentication
 
-All API endpoints require authentication when `INKYSTREAM_API_KEY` is set:
+All API endpoints require authentication when `INKYSTREAM_API_KEY` is set. For security, keep your key in environment variables and out of source control:
 
 ```bash
-# Include key in query string
+# Include key in query string (microcontrollers)
 ?key=YOUR_API_KEY
 
-# Or use Authorization header
+# Or use Authorization header (servers, higher-level clients)
 Authorization: Bearer YOUR_API_KEY
 ```
 
