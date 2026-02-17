@@ -2,13 +2,15 @@
 
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, X, Image as ImageIcon, FileImage } from 'lucide-react';
+import { Upload, X, FileImage, Sliders } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 interface ImageUploadProps {
   onFilesSelected: (files: File[]) => void;
+  onEditRequest?: (fileIndex: number) => void;
   maxFiles?: number;
   acceptedTypes?: string[];
+  showEditButtons?: boolean;
 }
 
 interface PreviewFile {
@@ -21,8 +23,10 @@ interface PreviewFile {
  */
 export default function ImageUpload({
   onFilesSelected,
+  onEditRequest,
   maxFiles = 10,
   acceptedTypes = ['image/jpeg', 'image/png', 'image/webp'],
+  showEditButtons = false,
 }: ImageUploadProps) {
   const [previews, setPreviews] = useState<PreviewFile[]>([]);
 
@@ -133,6 +137,7 @@ export default function ImageUpload({
                   alt={preview.file.name}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
+                {/* Remove button */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -144,6 +149,21 @@ export default function ImageUpload({
                 >
                   <X className="w-4 h-4" />
                 </button>
+                {/* Edit button */}
+                {showEditButtons && onEditRequest && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditRequest(index);
+                    }}
+                    className="absolute top-2 left-2 p-1.5 bg-black/70 backdrop-blur-sm rounded-lg text-white 
+                               opacity-0 group-hover:opacity-100 transition-all duration-200
+                               hover:bg-[#22d3ee] hover:scale-110"
+                    title="Preview & Adjust"
+                  >
+                    <Sliders className="w-4 h-4" />
+                  </button>
+                )}
                 <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent
                                 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   <p className="text-xs text-white truncate font-medium">

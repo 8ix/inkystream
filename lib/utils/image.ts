@@ -132,6 +132,12 @@ export async function processUploadedImage(
   // Ensure image directory exists
   await ensureDir(imageDir);
 
+  // Save original source image (for future re-processing)
+  const sourcePath = path.join(imageDir, 'source.jpg');
+  await sharp(inputBuffer)
+    .jpeg({ quality: 95 })
+    .toFile(sourcePath);
+
   // Generate thumbnail
   const thumbnailPath = path.join(imageDir, 'thumbnail.png');
   await generateThumbnail(inputBuffer, thumbnailPath);
@@ -191,6 +197,115 @@ export async function processUploadedImage(
     imageId,
     imageDir,
     metadataPath,
+    variants: variants.length,
+  });
+
+  return metadata;
+}
+
+/**
+ * Check if an image has its original source stored
+ */
+export async function hasSourceImage(categoryId: string, imageId: string): Promise<boolean> {
+  const sourcePath = path.join(IMAGES_DIR, categoryId, imageId, 'source.jpg');
+  try {
+    await fs.access(sourcePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get the source image buffer for re-processing
+ */
+export async function getSourceImage(categoryId: string, imageId: string): Promise<Buffer | null> {
+  const sourcePath = path.join(IMAGES_DIR, categoryId, imageId, 'source.jpg');
+  try {
+    return await fs.readFile(sourcePath);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Re-process an existing image with new settings
+ */
+export async function reprocessImage(
+  categoryId: string,
+  imageId: string,
+  deviceIds: string[],
+  dithering: DitheringAlgorithm = 'floyd-steinberg',
+  enhancement: EnhancementOptions = DEFAULT_ENHANCEMENT_OPTIONS
+): Promise<ImageMetadata | null> {
+  const imageDir = path.join(IMAGES_DIR, categoryId, imageId);
+  const sourcePath = path.join(imageDir, 'source.jpg');
+  const metadataPath = path.join(imageDir, 'metadata.json');
+
+  // Check if source exists
+  let sourceBuffer: Buffer;
+  try {
+    sourceBuffer = await fs.readFile(sourcePath);
+  } catch {
+    console.error(`[InkyStream] Source image not found for reprocessing: ${imageId}`);
+    return null;
+  }
+
+  // Read existing metadata
+  let existingMetadata: ImageMetadata;
+  try {
+    const content = await fs.readFile(metadataPath, 'utf-8');
+    existingMetadata = JSON.parse(content);
+  } catch {
+    console.error(`[InkyStream] Metadata not found for reprocessing: ${imageId}`);
+    return null;
+  }
+
+  // Regenerate thumbnail with new settings
+  const thumbnailPath = path.join(imageDir, 'thumbnail.png');
+  await generateThumbnail(sourceBuffer, thumbnailPath);
+
+  // Re-process for each device
+  const variants: ImageVariant[] = [];
+
+  for (const deviceId of deviceIds) {
+    const device = await getDevice(deviceId);
+    if (!device) continue;
+
+    const display = await getDisplayProfile(device.displayId);
+    if (!display) continue;
+
+    const outputFilename = `${deviceId}.jpg`;
+    const outputPath = path.join(imageDir, outputFilename);
+
+    await processImage(sourceBuffer, outputPath, {
+      width: display.width,
+      height: display.height,
+      dithering,
+      palette: display.palette,
+      enhancement,
+    });
+
+    variants.push({
+      deviceId,
+      displayId: device.displayId,
+      filename: outputFilename,
+      width: display.width,
+      height: display.height,
+    });
+  }
+
+  // Update metadata
+  const metadata: ImageMetadata = {
+    ...existingMetadata,
+    processedAt: new Date().toISOString(),
+    variants,
+  };
+
+  await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
+
+  console.log('[InkyStream] Image re-processed:', {
+    imageId,
     variants: variants.length,
   });
 

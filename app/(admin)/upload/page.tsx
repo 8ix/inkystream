@@ -210,28 +210,37 @@ export default function UploadPage() {
           </div>
           <ImageUpload
             onFilesSelected={setFiles}
+            onEditRequest={editorDisplay ? handleOpenEditor : undefined}
             maxFiles={10}
+            showEditButtons={!!editorDisplay && files.length > 0}
           />
           
-          {/* Preview & Adjust Button */}
-          {files.length > 0 && editorDisplay && (
+          {/* Adjustments indicator */}
+          {files.length > 0 && customAdjustments && (
             <div className="mt-4 pt-4 border-t border-white/10">
-              <button
-                onClick={() => handleOpenEditor(0)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl
-                           bg-gradient-to-r from-[#22d3ee]/20 to-[#a855f7]/20 
-                           border border-[#22d3ee]/30 hover:border-[#22d3ee]/50
-                           text-white font-medium transition-all hover:scale-[1.02]"
-              >
-                <Sliders className="w-4 h-4" />
-                Preview & Adjust Colors
-              </button>
-              {customAdjustments && (
-                <p className="text-xs text-center text-[#22d3ee] mt-2">
-                  ✓ Custom adjustments applied
-                </p>
-              )}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-[#22d3ee]/10 border border-[#22d3ee]/30">
+                <div className="flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-[#22d3ee]" />
+                  <span className="text-sm text-white">Custom adjustments applied</span>
+                </div>
+                <button
+                  onClick={() => setCustomAdjustments(null)}
+                  className="text-xs text-white/50 hover:text-white transition-colors"
+                >
+                  Reset
+                </button>
+              </div>
+              <p className="text-xs text-white/40 mt-2 text-center">
+                Hover over any image and click <Sliders className="w-3 h-3 inline" /> to preview
+              </p>
             </div>
+          )}
+          
+          {/* Hint when no adjustments */}
+          {files.length > 0 && !customAdjustments && editorDisplay && (
+            <p className="mt-4 pt-4 border-t border-white/10 text-xs text-white/40 text-center">
+              Hover over any image and click <Sliders className="w-3 h-3 inline" /> to preview & adjust colors
+            </p>
           )}
         </div>
 

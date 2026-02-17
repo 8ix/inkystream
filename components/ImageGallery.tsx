@@ -1,16 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ImageMetadata } from '@/lib/types/image';
 import type { Category } from '@/lib/types/category';
 import type { Device } from '@/lib/types/device';
-import { Image as ImageIcon, X, Download, Trash2, Eye, Monitor, Calendar, FileImage } from 'lucide-react';
+import type { DisplayProfile } from '@/lib/types/display';
+import type { ImageAdjustments } from '@/lib/client/image-processing';
+import { Image as ImageIcon, X, Download, Trash2, Eye, Monitor, Calendar, FileImage, Sliders, RefreshCw, Loader2 } from 'lucide-react';
 import Portal from './Portal';
+import ImageEditor from './ImageEditor';
 
 interface ImageGalleryProps {
   images: ImageMetadata[];
   categories: Category[];
   devices?: Device[];
+  displays?: DisplayProfile[];
   currentDeviceId?: string;
   onRefresh?: () => void;
 }
@@ -31,12 +35,114 @@ export default function ImageGallery({
   images, 
   categories, 
   devices = [],
+  displays = [],
   currentDeviceId,
   onRefresh
 }: ImageGalleryProps) {
   const [selectedImage, setSelectedImage] = useState<ImageMetadata | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
+  const [canReprocess, setCanReprocess] = useState(false);
+  const [isReprocessing, setIsReprocessing] = useState(false);
+  const [sourceFile, setSourceFile] = useState<File | null>(null);
+  const [loadingSource, setLoadingSource] = useState(false);
+
+  // Check if selected image can be reprocessed
+  useEffect(() => {
+    if (!selectedImage) {
+      setCanReprocess(false);
+      return;
+    }
+
+    async function checkReprocess() {
+      try {
+        const res = await fetch(`/api/images/${selectedImage!.categoryId}/${selectedImage!.id}/reprocess`);
+        const data = await res.json();
+        setCanReprocess(data.success && data.data?.canReprocess);
+      } catch {
+        setCanReprocess(false);
+      }
+    }
+
+    checkReprocess();
+  }, [selectedImage]);
+
+  // Get display for the selected image's first device
+  const getEditorDisplay = (): DisplayProfile | null => {
+    if (!selectedImage || displays.length === 0) return displays[0] || null;
+    const firstVariant = selectedImage.variants[0];
+    if (!firstVariant) return displays[0] || null;
+    return displays.find(d => d.id === firstVariant.displayId) || displays[0] || null;
+  };
+
+  const handleOpenEditor = async () => {
+    if (!selectedImage || !canReprocess) return;
+
+    setLoadingSource(true);
+    try {
+      // Fetch the source image as a File
+      const sourceUrl = `/api/img/${selectedImage.categoryId}/${selectedImage.id}/source.jpg`;
+      const response = await fetch(sourceUrl);
+      const blob = await response.blob();
+      const file = new File([blob], selectedImage.originalFilename, { type: 'image/jpeg' });
+      setSourceFile(file);
+      setShowEditor(true);
+    } catch (error) {
+      console.error('Failed to load source image:', error);
+      alert('Failed to load source image for editing');
+    } finally {
+      setLoadingSource(false);
+    }
+  };
+
+  const handleEditorConfirm = async (adjustments: ImageAdjustments) => {
+    if (!selectedImage) return;
+
+    setShowEditor(false);
+    setIsReprocessing(true);
+
+    try {
+      // Convert adjustments to enhancement options
+      const enhancement = {
+        saturation: adjustments.saturation / 100,
+        contrast: adjustments.contrast / 100,
+        gamma: 2.0 / (adjustments.brightness / 100),
+      };
+
+      const response = await fetch(
+        `/api/images/${selectedImage.categoryId}/${selectedImage.id}/reprocess`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            deviceIds: selectedImage.variants.map(v => v.deviceId),
+            dithering: 'floyd-steinberg',
+            enhancement,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSelectedImage(null);
+        if (onRefresh) onRefresh();
+      } else {
+        alert('Failed to re-process image: ' + data.error);
+      }
+    } catch (error) {
+      alert('An error occurred while re-processing');
+    } finally {
+      setIsReprocessing(false);
+      setSourceFile(null);
+    }
+  };
+
+  const handleEditorCancel = () => {
+    setShowEditor(false);
+    setSourceFile(null);
+  };
 
   const handleDelete = async () => {
     if (!selectedImage || isDeleting) return;
@@ -293,11 +399,37 @@ export default function ImageGallery({
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold
                              bg-red-500/20 text-red-400 border border-red-500/30
                              hover:bg-red-500/30 transition-colors"
-                  disabled={isDeleting}
+                  disabled={isDeleting || isReprocessing}
                 >
                   <Trash2 className="w-4 h-4" />
-                  Delete Image
+                  Delete
                 </button>
+                
+                {/* Re-process button */}
+                {canReprocess && displays.length > 0 && (
+                  <button
+                    onClick={handleOpenEditor}
+                    disabled={loadingSource || isReprocessing}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold
+                               bg-[#22d3ee]/20 text-[#22d3ee] border border-[#22d3ee]/30
+                               hover:bg-[#22d3ee]/30 transition-colors
+                               disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loadingSource || isReprocessing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sliders className="w-4 h-4" />
+                    )}
+                    {isReprocessing ? 'Processing...' : 'Edit & Re-process'}
+                  </button>
+                )}
+                
+                {!canReprocess && (
+                  <span className="text-xs text-white/40 self-center">
+                    Re-upload to enable editing
+                  </span>
+                )}
+                
                 <button
                   onClick={() => setSelectedImage(null)}
                   className="ink-button-secondary"
@@ -355,6 +487,41 @@ export default function ImageGallery({
                 >
                   {isDeleting ? 'Deleting...' : 'Delete'}
                 </button>
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+      {/* Image Editor Modal */}
+      {showEditor && sourceFile && selectedImage && (
+        <Portal>
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              onClick={handleEditorCancel}
+            />
+            
+            {/* Modal */}
+            <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto
+                            bg-gradient-to-br from-[#1a1a2e] to-[#16213e] 
+                            rounded-2xl border border-white/10 shadow-2xl">
+              <div className="p-6">
+                {(() => {
+                  const editorDisplay = getEditorDisplay();
+                  if (!editorDisplay) return <p className="text-white">No display configured</p>;
+                  return (
+                    <ImageEditor
+                      file={sourceFile}
+                      palette={editorDisplay.palette}
+                      targetWidth={editorDisplay.width}
+                      targetHeight={editorDisplay.height}
+                      onConfirm={handleEditorConfirm}
+                      onCancel={handleEditorCancel}
+                    />
+                  );
+                })()}
               </div>
             </div>
           </div>

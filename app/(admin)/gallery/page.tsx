@@ -5,28 +5,33 @@ import ImageGallery from '@/components/ImageGallery';
 import type { ImageMetadata } from '@/lib/types/image';
 import type { Category } from '@/lib/types/category';
 import type { Device } from '@/lib/types/device';
+import type { DisplayProfile } from '@/lib/types/display';
 
 export default function GalleryPage() {
   const [images, setImages] = useState<ImageMetadata[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
+  const [displays, setDisplays] = useState<DisplayProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     try {
-      const [imgRes, catRes, devRes] = await Promise.all([
+      const [imgRes, catRes, devRes, dispRes] = await Promise.all([
         fetch('/api/images'),
         fetch('/api/categories'),
         fetch('/api/devices'),
+        fetch('/api/displays'),
       ]);
 
       const imgData = await imgRes.json();
       const catData = await catRes.json();
       const devData = await devRes.json();
+      const dispData = await dispRes.json();
 
       if (imgData.success) setImages(imgData.data || []);
       if (catData.success) setCategories(catData.data.categories || []);
       if (devData.success) setDevices(devData.data || []);
+      if (dispData.success) setDisplays(dispData.data.displays || []);
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -51,7 +56,8 @@ export default function GalleryPage() {
       <ImageGallery 
         images={images} 
         categories={categories} 
-        devices={devices} 
+        devices={devices}
+        displays={displays}
         onRefresh={loadData}
       />
     </div>
