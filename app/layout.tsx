@@ -1,15 +1,37 @@
 import type { Metadata } from 'next';
-import { Inter, JetBrains_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 
-const inter = Inter({
+const inter = localFont({
+  src: [
+    {
+      path: '../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2',
+      weight: '100 900',
+      style: 'normal',
+    },
+    {
+      path: '../node_modules/@fontsource-variable/inter/files/inter-latin-wght-italic.woff2',
+      weight: '100 900',
+      style: 'italic',
+    },
+  ],
   variable: '--font-geist-sans',
-  subsets: ['latin'],
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const jetbrainsMono = localFont({
+  src: [
+    {
+      path: '../node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2',
+      weight: '100 800',
+      style: 'normal',
+    },
+    {
+      path: '../node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-italic.woff2',
+      weight: '100 800',
+      style: 'italic',
+    },
+  ],
   variable: '--font-geist-mono',
-  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
