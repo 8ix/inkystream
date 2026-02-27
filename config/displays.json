@@ -1,0 +1,14 @@
+{
+  "displays": [
+    {
+      "id": "inky_frame_7_spectra6",
+      "name": "Inky Frame 7.3\" Spectra 6",
+      "description": "Pimoroni Inky Frame 7.3\" with 6-colour Spectra display (800×480)",
+      "width": 800,
+      "height": 480,
+      "palette": ["#000000", "#FFFFFF", "#A02020", "#F0E050", "#608050", "#5080B8"],
+      "manufacturer": "Pimoroni",
+      "defaultDithering": "floyd-steinberg"
+    }
+  ]
+}

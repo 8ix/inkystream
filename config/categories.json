@@ -1,0 +1,22 @@
+{
+  "categories": [
+    {
+      "id": "landscapes",
+      "name": "Landscapes",
+      "description": "Nature and scenic views",
+      "colour": "#228B22"
+    },
+    {
+      "id": "family",
+      "name": "Family",
+      "description": "Family photos and memories",
+      "colour": "#FFB6C1"
+    },
+    {
+      "id": "art",
+      "name": "Art",
+      "description": "Artistic and abstract images",
+      "colour": "#9370DB"
+    }
+  ]
+}

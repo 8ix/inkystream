@@ -1,0 +1,69 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Testing
+/coverage
+
+# Next.js
+/.next/
+/out/
+
+# Production
+/build
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env*.local
+.env
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# SWC compiler cache (machine-specific)
+.swc/
+
+# Claude IDE local settings (machine-specific)
+.claude/
+
+# OS
+Thumbs.db
+
+# Uploaded raw images (local only, not tracked)
+/uploads/
+/raw-images/
+
+# Temporary files
+/tmp/
+*.tmp
+
+# State file (used for image rotation)
+.current-state.json
+
+# =============================================================================
+# IMAGE STORAGE
+# =============================================================================
+# 
+# Processed images are stored in /images/ and served via /api/img/.
+# Images are runtime data - populated via Docker volume mount or local upload.
+# Only the placeholder file is tracked to preserve the directory in git.
+#
+/images/**
+!/images/.gitkeep

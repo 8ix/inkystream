@@ -1,0 +1,14 @@
+node_modules
+.next
+Dockerfile
+.dockerignore
+docker-compose.yaml
+.git
+.gitignore
+npm-debug.log
+*.log
+images/
+.tmp
+.env
+.env.*
+DOCKER-DEPLOYMENT.md
