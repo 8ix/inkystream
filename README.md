@@ -70,18 +70,22 @@ On the device page, copy the generated code for the platform. For Inky Frame, pa
 
 ## Running with Docker (recommended)
 
-Mount `./images` and `./config` so data persists outside the container.
+A pre-built image is published to GitHub Container Registry and supports amd64, arm64, and armv7 — so it runs on standard servers and all Raspberry Pi models without building anything locally.
 
 **Docker Compose:**
+
+Clone the repo to get the compose file and environment template, then start the container:
 
 ```bash
 git clone https://github.com/8ix/inkystream.git
 cd inkystream
-cp .env.docker .env        # edit PORT and optionally INKYSTREAM_API_KEY
+cp .env.docker .env        # set PORT and optionally INKYSTREAM_API_KEY
 docker compose up -d
 ```
 
 **Plain Docker:**
+
+If you prefer not to clone the repo, the image can be pulled and run directly:
 
 ```bash
 docker run -d \
@@ -96,6 +100,8 @@ docker run -d \
 Open `http://your-server-ip:3000` in a browser.
 
 ## Running natively (Next.js)
+
+For development or if Docker isn't available:
 
 ```bash
 git clone https://github.com/8ix/inkystream.git

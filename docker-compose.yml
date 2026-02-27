@@ -1,0 +1,13 @@
+services:
+  inkystream:
+    image: ghcr.io/8ix/inkystream:latest
+    container_name: inkystream
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - INKYSTREAM_API_KEY=${INKYSTREAM_API_KEY:-}
+      - NODE_ENV=production
+    volumes:
+      - ./images:/app/images
+      - ./config:/app/config
