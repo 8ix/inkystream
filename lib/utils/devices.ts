@@ -102,7 +102,7 @@ export async function createDevice(
  */
 export async function updateDevice(
   id: string,
-  updates: Partial<Pick<Device, 'name' | 'displayId' | 'platform' | 'codeTemplate' | 'refreshIntervalSeconds' | 'lastSeenAt'>>
+  updates: Partial<Pick<Device, 'name' | 'displayId' | 'platform' | 'codeTemplate' | 'refreshIntervalSeconds' | 'lastSeenAt' | 'categoryFilter'>>
 ): Promise<Device | null> {
   const devices = await getDevices();
   const index = devices.findIndex((d) => d.id === id);
@@ -111,10 +111,12 @@ export async function updateDevice(
     return null;
   }
   
-  devices[index] = {
-    ...devices[index],
-    ...updates,
-  };
+  const merged = { ...devices[index], ...updates };
+  // If categoryFilter was explicitly set to undefined, remove the key entirely
+  if ('categoryFilter' in updates && updates.categoryFilter === undefined) {
+    delete merged.categoryFilter;
+  }
+  devices[index] = merged;
   
   await saveDevices(devices);
   return devices[index];

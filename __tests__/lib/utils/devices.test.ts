@@ -205,6 +205,41 @@ describe('Device Utils', () => {
       expect(result).toBeNull();
       expect(fs.writeFile).not.toHaveBeenCalled();
     });
+
+    it('persists categoryFilter when provided', async () => {
+      const updated = await updateDevice('living-room', { categoryFilter: 'demo-category' } as any);
+
+      expect(updated).not.toBeNull();
+      expect(updated?.categoryFilter).toBe('demo-category');
+      expect(fs.writeFile).toHaveBeenCalledTimes(1);
+
+      const writtenJson = (fs.writeFile as jest.Mock).mock.calls[0][1];
+      const written = JSON.parse(writtenJson);
+      const device = written.devices.find((d: any) => d.id === 'living-room');
+      expect(device.categoryFilter).toBe('demo-category');
+    });
+
+    it('clears categoryFilter when set to undefined', async () => {
+      (fs.readFile as jest.Mock).mockResolvedValue(
+        JSON.stringify({
+          devices: [
+            { ...mockDevice1, categoryFilter: 'old-category' },
+            mockDevice2,
+          ],
+        })
+      );
+
+      const updated = await updateDevice('living-room', { categoryFilter: undefined } as any);
+
+      expect(updated).not.toBeNull();
+      expect(updated?.categoryFilter).toBeUndefined();
+      expect(fs.writeFile).toHaveBeenCalledTimes(1);
+
+      const writtenJson = (fs.writeFile as jest.Mock).mock.calls[0][1];
+      const written = JSON.parse(writtenJson);
+      const device = written.devices.find((d: any) => d.id === 'living-room');
+      expect(device.categoryFilter).toBeUndefined();
+    });
   });
 
   // ---------------------------------------------------------------------------

@@ -5,26 +5,31 @@ import DeviceManager from '@/components/DeviceManager';
 import CustomDisplayModal from '@/components/CustomDisplayModal';
 import type { Device } from '@/lib/types/device';
 import type { DisplayProfile } from '@/lib/types/display';
+import type { Category } from '@/lib/types/category';
 import { Monitor, ExternalLink, ArrowRight } from 'lucide-react';
 
 export default function DevicesPage() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [displays, setDisplays] = useState<DisplayProfile[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCustomDisplayModal, setShowCustomDisplayModal] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
-      const [devRes, dispRes] = await Promise.all([
+      const [devRes, dispRes, catRes] = await Promise.all([
         fetch('/api/devices'),
         fetch('/api/displays'),
+        fetch('/api/categories'),
       ]);
 
       const devData = await devRes.json();
       const dispData = await dispRes.json();
+      const catData = await catRes.json();
 
       if (devData.success) setDevices(devData.data || []);
       if (dispData.success) setDisplays(dispData.data.displays || []);
+      if (catData.success) setCategories(catData.data.categories || []);
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -88,7 +93,7 @@ export default function DevicesPage() {
         </div>
       </div>
 
-      <DeviceManager devices={devices} displays={displays} onRefresh={loadData} />
+      <DeviceManager devices={devices} displays={displays} categories={categories} onRefresh={loadData} />
 
       {/* Custom Display Modal */}
       <CustomDisplayModal 

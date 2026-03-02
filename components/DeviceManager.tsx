@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import type { Device, DevicePlatform } from '@/lib/types/device';
 import type { DisplayProfile } from '@/lib/types/display';
-import { Monitor, Plus, Pencil, Trash2, X, Check, Wifi, Sparkles, Code, Circle } from 'lucide-react';
+import type { Category } from '@/lib/types/category';
+import { Monitor, Plus, Pencil, Trash2, X, Check, Wifi, Sparkles, Code, Circle, Tag } from 'lucide-react';
 import FrameCodeSnippet from './FrameCodeSnippet';
 import Portal from './Portal';
 import { suggestPlatform } from '@/lib/utils/frame-code';
@@ -11,13 +12,14 @@ import { suggestPlatform } from '@/lib/utils/frame-code';
 interface DeviceManagerProps {
   devices: Device[];
   displays: DisplayProfile[];
+  categories: Category[];
   onRefresh?: () => void;
 }
 
 /**
  * Device Manager component for creating, editing, and deleting devices
  */
-export default function DeviceManager({ devices, displays, onRefresh }: DeviceManagerProps) {
+export default function DeviceManager({ devices, displays, categories, onRefresh }: DeviceManagerProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,11 +31,13 @@ export default function DeviceManager({ devices, displays, onRefresh }: DeviceMa
   const [newPlatform, setNewPlatform] = useState<DevicePlatform | ''>('');
   const [newCodeTemplate, setNewCodeTemplate] = useState('');
   const [newRefreshMinutes, setNewRefreshMinutes] = useState<number | ''>(60);
+  const [newCategoryFilter, setNewCategoryFilter] = useState('');
   const [editName, setEditName] = useState('');
   const [editDisplayId, setEditDisplayId] = useState('');
   const [editPlatform, setEditPlatform] = useState<DevicePlatform | ''>('');
   const [editCodeTemplate, setEditCodeTemplate] = useState('');
   const [editRefreshMinutes, setEditRefreshMinutes] = useState<number | ''>('');
+  const [editCategoryFilter, setEditCategoryFilter] = useState('');
   const [expandedDeviceId, setExpandedDeviceId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deviceToDelete, setDeviceToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -133,6 +137,7 @@ export default function DeviceManager({ devices, displays, onRefresh }: DeviceMa
           platform: newPlatform || undefined,
           codeTemplate: newPlatform === 'custom' ? newCodeTemplate : undefined,
           refreshIntervalSeconds: newRefreshMinutes ? Number(newRefreshMinutes) * 60 : undefined,
+          categoryFilter: newCategoryFilter || undefined,
         }),
       });
 
@@ -144,6 +149,7 @@ export default function DeviceManager({ devices, displays, onRefresh }: DeviceMa
         setNewPlatform('');
         setNewCodeTemplate('');
         setNewRefreshMinutes(60);
+        setNewCategoryFilter('');
         setIsCreating(false);
         onRefresh?.();
       } else {
@@ -167,6 +173,7 @@ export default function DeviceManager({ devices, displays, onRefresh }: DeviceMa
         ? Math.round(device.refreshIntervalSeconds / 60)
         : ''
     );
+    setEditCategoryFilter(device.categoryFilter || '');
     setError(null);
   };
 
@@ -177,6 +184,7 @@ export default function DeviceManager({ devices, displays, onRefresh }: DeviceMa
     setEditPlatform('');
     setEditCodeTemplate('');
     setEditRefreshMinutes('');
+    setEditCategoryFilter('');
     setError(null);
   };
 
@@ -196,6 +204,7 @@ export default function DeviceManager({ devices, displays, onRefresh }: DeviceMa
           platform: editPlatform || undefined,
           codeTemplate: editPlatform === 'custom' ? editCodeTemplate : undefined,
           refreshIntervalSeconds: editRefreshMinutes ? Number(editRefreshMinutes) * 60 : undefined,
+          categoryFilter: editCategoryFilter || null,
         }),
       });
 
@@ -359,6 +368,28 @@ export default function DeviceManager({ devices, displays, onRefresh }: DeviceMa
                   Used for health checks; frames typically wake on this cadence.
                 </p>
               </div>
+              <div>
+                <label htmlFor="newCategoryFilter" className="ink-label">
+                  Category Filter
+                </label>
+                <select
+                  id="newCategoryFilter"
+                  value={newCategoryFilter}
+                  onChange={(e) => setNewCategoryFilter(e.target.value)}
+                  className="ink-input"
+                  disabled={isLoading}
+                >
+                  <option value="">All categories</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-white/50 mt-1">
+                  Restrict /random and /next to this category only.
+                </p>
+              </div>
               {newPlatform === 'custom' && (
                 <div className="md:col-span-2">
                   <label htmlFor="newCodeTemplate" className="ink-label">
@@ -392,6 +423,7 @@ export default function DeviceManager({ devices, displays, onRefresh }: DeviceMa
                 onClick={() => {
                   setIsCreating(false);
                   setNewName('');
+                  setNewCategoryFilter('');
                   setError(null);
                 }}
                 className="ink-button-secondary flex items-center gap-2"
@@ -503,6 +535,25 @@ export default function DeviceManager({ devices, displays, onRefresh }: DeviceMa
                               disabled={isLoading}
                             />
                           </div>
+                          <div>
+                            <label className="text-xs text-white/50 mb-1 block">Category Filter</label>
+                            <select
+                              value={editCategoryFilter}
+                              onChange={(e) => setEditCategoryFilter(e.target.value)}
+                              className="ink-input w-full"
+                              disabled={isLoading}
+                            >
+                              <option value="">All categories</option>
+                              {categories.map((cat) => (
+                                <option key={cat.id} value={cat.id}>
+                                  {cat.name}
+                                </option>
+                              ))}
+                            </select>
+                            <p className="text-xs text-white/50 mt-1">
+                              Restrict /random and /next to this category only.
+                            </p>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
@@ -559,6 +610,24 @@ export default function DeviceManager({ devices, displays, onRefresh }: DeviceMa
                           <span className="text-[11px] text-white/50 bg-white/5 border border-white/10 px-2 py-1 rounded-full">
                             Refresh ~{Math.round((device.refreshIntervalSeconds ?? 3600) / 60)}m
                           </span>
+                          {device.categoryFilter ? (
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] border"
+                              style={{
+                                backgroundColor: `${categories.find(c => c.id === device.categoryFilter)?.colour ?? '#a855f7'}22`,
+                                borderColor: `${categories.find(c => c.id === device.categoryFilter)?.colour ?? '#a855f7'}55`,
+                                color: categories.find(c => c.id === device.categoryFilter)?.colour ?? '#d8b4fe',
+                              }}
+                            >
+                              <Tag className="w-3 h-3" />
+                              {categories.find(c => c.id === device.categoryFilter)?.name ?? device.categoryFilter}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-white/30 bg-white/5 border border-white/10 px-2 py-1 rounded-full inline-flex items-center gap-1">
+                              <Tag className="w-3 h-3" />
+                              All categories
+                            </span>
+                          )}
                         </div>
                       </div>
                         </div>

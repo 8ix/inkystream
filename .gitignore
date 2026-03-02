@@ -54,8 +54,10 @@ Thumbs.db
 /tmp/
 *.tmp
 
-# State file (used for image rotation)
+# State files (used for image rotation and device queues)
 .current-state.json
+.device-recent-state.json
+.device-shuffle-state.json
 
 # =============================================================================
 # IMAGE STORAGE

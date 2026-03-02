@@ -69,7 +69,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { deviceId } = await params;
     const { searchParams } = new URL(request.url);
-    const categoryId = searchParams.get('category');
+    const queryCategory = searchParams.get('category');
 
     // Validate device exists
     const device = await getDevice(deviceId);
@@ -80,20 +80,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Check category if provided
-    if (categoryId) {
-      const catExists = await categoryExists(categoryId);
+    // Resolve effective category: query param takes precedence, then device filter
+    const effectiveCategoryId = queryCategory ?? device.categoryFilter ?? null;
+
+    // Check category if resolved
+    if (effectiveCategoryId) {
+      const catExists = await categoryExists(effectiveCategoryId);
       if (!catExists) {
         return NextResponse.json(
-          { success: false, error: `Category '${categoryId}' not found` },
+          { success: false, error: `Category '${effectiveCategoryId}' not found` },
           { status: 400 }
         );
       }
     }
 
     // Get images
-    const images = categoryId
-      ? await getCategoryImages(categoryId)
+    const images = effectiveCategoryId
+      ? await getCategoryImages(effectiveCategoryId)
       : await getAllImages();
 
     // Filter to images that have a variant for this device
@@ -116,7 +119,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     
     // Load shuffle state
     const state = await getShuffleState();
-    const stateKey = categoryId ? `${deviceId}:${categoryId}` : deviceId;
+    const stateKey = effectiveCategoryId ? `${deviceId}:${effectiveCategoryId}` : deviceId;
     let deviceState = state[stateKey];
 
     // Check if we need to create or refresh the shuffle queue

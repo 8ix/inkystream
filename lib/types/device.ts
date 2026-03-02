@@ -23,6 +23,8 @@ export interface Device {
   refreshIntervalSeconds?: number;
   /** Last time this device pulled an image (ISO timestamp) */
   lastSeenAt?: string;
+  /** If set, /random and /next will only serve images from this category unless overridden by query param */
+  categoryFilter?: string;
   /** When the device was created */
   createdAt: string;
 }

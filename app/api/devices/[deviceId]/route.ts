@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDevice, updateDevice, deleteDevice } from '@/lib/utils/devices';
 import { displayExists } from '@/lib/displays/profiles';
+import { categoryExists } from '@/lib/utils/categories';
 import type { DevicePlatform } from '@/lib/types/device';
 
 interface RouteParams {
@@ -44,7 +45,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const { deviceId } = await params;
     const body = await request.json();
-    const { name, displayId, platform, codeTemplate, refreshIntervalSeconds } = body;
+    const { name, displayId, platform, codeTemplate, refreshIntervalSeconds, categoryFilter } = body;
 
     // Check device exists
     const existingDevice = await getDevice(deviceId);
@@ -62,6 +63,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       platform?: DevicePlatform;
       codeTemplate?: string;
       refreshIntervalSeconds?: number;
+      categoryFilter?: string;
     } = {};
 
     if (name !== undefined) {
@@ -135,6 +137,27 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         );
       }
       updates.refreshIntervalSeconds = value;
+    }
+
+    if ('categoryFilter' in body) {
+      if (categoryFilter === null) {
+        // Explicitly clear the filter — pass undefined so updateDevice removes the key
+        (updates as any).categoryFilter = undefined;
+      } else if (typeof categoryFilter === 'string' && categoryFilter.length > 0) {
+        const catExists = await categoryExists(categoryFilter);
+        if (!catExists) {
+          return NextResponse.json(
+            { success: false, error: `Category '${categoryFilter}' not found` },
+            { status: 400 }
+          );
+        }
+        updates.categoryFilter = categoryFilter;
+      } else {
+        return NextResponse.json(
+          { success: false, error: 'categoryFilter must be a non-empty string or null' },
+          { status: 400 }
+        );
+      }
     }
 
     // Update the device
