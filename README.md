@@ -17,8 +17,9 @@ InkyStream runs on a home server and gives e-ink photo frames a brain. A frame w
 The challenge is making photographs look good on a screen that can only display six or seven colours. InkyStream handles this automatically using dithering, an algorithm that uses patterns of dots to simulate tones and gradients the hardware can't natively show. Upload a photo, InkyStream processes it, and a correctly sized and dithered variant for each configured device is ready to serve.
 
 <p align="center">
-  <img src="docs/frame.jpg" alt="Pimoroni Inky Frame displaying a photograph" width="700"><br>
-  <em>A Pimoroni Inky Frame 7.3" displaying a dithered photograph, running on batteries with no cables.</em>
+  <img src="docs/frame-1.jpg" alt="Pimoroni Inky Frame displaying a photograph" width="340">
+  <img src="docs/frame-2.jpg" alt="Pimoroni Inky Frame displaying a photograph" width="340"><br>
+  <em>Pimoroni Inky Frame 7.3" displays running on batteries with no cables.</em>
 </p>
 
 **Features:**
@@ -51,7 +52,7 @@ Go to the Devices tab and create a new device. Give it a name, select the displa
 Go to the Upload tab. Drag and drop photos or browse to select them. Assign each upload to a category, choose a dithering algorithm (Floyd-Steinberg works well for most images), and select which devices to process for. InkyStream handles the rest — resizing, dithering, and saving a processed variant for each device.
 
 <p align="center">
-  <img src="docs/ui-upload.jpg" alt="The InkyStream upload screen" width="700"><br>
+  <a href="docs/ui-upload.png"><img src="docs/ui-upload.png" alt="The InkyStream upload screen" width="500"></a><br>
   <em>The upload screen. Photos are processed and dithered automatically on upload.</em>
 </p>
 
@@ -60,7 +61,7 @@ Go to the Upload tab. Drag and drop photos or browse to select them. Assign each
 The gallery shows all processed images organised by category. Each image displays a thumbnail of the dithered result. Images can be deleted or reprocessed for different devices from here.
 
 <p align="center">
-  <img src="docs/ui-gallery.jpg" alt="The InkyStream image gallery" width="700"><br>
+  <a href="docs/ui-gallery.png"><img src="docs/ui-gallery.png" alt="The InkyStream image gallery" width="500"></a><br>
   <em>The image gallery, showing processed variants organised by category.</em>
 </p>
 
