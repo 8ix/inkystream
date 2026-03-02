@@ -18,7 +18,7 @@ The challenge is making photographs look good on a screen that can only display 
 
 <p align="center">
   <img src="docs/frame-1.jpg" alt="Pimoroni Inky Frame displaying a photograph" width="340">
-  <img src="docs/frame-2.jpg" alt="Pimoroni Inky Frame displaying a photograph" width="340"><br>
+  <img src="docs/frame-2.png" alt="Pimoroni Inky Frame displaying a photograph" width="340"><br>
   <em>Pimoroni Inky Frame 7.3" displays running on batteries with no cables.</em>
 </p>
 
