@@ -68,24 +68,37 @@ The gallery shows all processed images organised by category. Each image display
 
 On the device page, copy the generated code for the platform. For Inky Frame, paste it into Thonny, update the WiFi credentials and server address, save it as `main.py`, and upload it to the device. The frame will connect, call the API, and display its first image.
 
-## Running with Docker (recommended)
+## Running with Docker
 
-A pre-built image is published to GitHub Container Registry and supports amd64, arm64, and armv7 — so it runs on standard servers and all Raspberry Pi models without building anything locally.
+A pre-built image is published to [GitHub Container Registry](https://github.com/8ix/inkystream/pkgs/container/inkystream) and supports `amd64` and `arm64` — standard servers and Raspberry Pi 4/5 are both covered.
 
-**Docker Compose:**
+**Docker Compose (recommended):**
 
-Clone the repo to get the compose file and environment template, then start the container:
+Create a `docker-compose.yml` file:
+
+```yaml
+services:
+  inkystream:
+    image: ghcr.io/8ix/inkystream:latest
+    container_name: inkystream
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - INKYSTREAM_API_KEY=your_secret_key
+      - NODE_ENV=production
+    volumes:
+      - ./images:/app/images
+      - ./config:/app/config
+```
+
+Then start it:
 
 ```bash
-git clone https://github.com/8ix/inkystream.git
-cd inkystream
-cp .env.docker .env        # set PORT and optionally INKYSTREAM_API_KEY
 docker compose up -d
 ```
 
 **Plain Docker:**
-
-If you prefer not to clone the repo, the image can be pulled and run directly:
 
 ```bash
 docker run -d \
@@ -99,18 +112,9 @@ docker run -d \
 
 Open `http://your-server-ip:3000` in a browser.
 
-## Running natively (Next.js)
+## Running natively
 
-For development or if Docker isn't available:
-
-```bash
-git clone https://github.com/8ix/inkystream.git
-cd inkystream
-npm install
-cp .env.example .env.local   # set INKYSTREAM_API_KEY if you want it
-npm run build
-npm start
-```
+InkyStream is a standard Next.js application. Clone the repo and follow the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) to run it without Docker.
 
 ## Pointing a frame at it
 
