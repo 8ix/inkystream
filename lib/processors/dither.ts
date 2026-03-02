@@ -1270,7 +1270,7 @@ export async function processWithDithering(
     rgb[i * 3 + 2] = dithered[i * 4 + 2];
   }
 
-  // Create output PNG for lossless quality
+  // Output as JPEG — required by jpegdec on Inky Frame devices
   return sharp(rgb, {
     raw: {
       width: info.width,
@@ -1278,7 +1278,7 @@ export async function processWithDithering(
       channels: 3,
     },
   })
-    .png()
+    .jpeg({ quality: 95 })
     .toBuffer();
 }
 

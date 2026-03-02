@@ -2,6 +2,7 @@
  * Tests for dithering algorithms
  */
 
+import sharp from 'sharp';
 import {
   applyDithering,
   colorDistance,
@@ -12,6 +13,7 @@ import {
   applyFloydSteinberg,
   applyAtkinson,
   applyOrdered,
+  processWithDithering,
 } from '@/lib/processors/dither';
 
 import {
@@ -225,6 +227,51 @@ describe('Dithering', () => {
 
       expect(result).toBeInstanceOf(Uint8ClampedArray);
       expect(result.length).toBe(16);
+    });
+  });
+
+  describe('processWithDithering', () => {
+    const JPEG_MAGIC = Buffer.from([0xff, 0xd8, 0xff]);
+    const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+
+    const palette: RGB[] = [
+      { r: 0, g: 0, b: 0 },
+      { r: 255, g: 255, b: 255 },
+    ];
+
+    async function makeTestImageBuffer(width = 8, height = 8): Promise<Buffer> {
+      return sharp({
+        create: {
+          width,
+          height,
+          channels: 3,
+          background: { r: 128, g: 128, b: 128 },
+        },
+      })
+        .jpeg()
+        .toBuffer();
+    }
+
+    it('should return a buffer with JPEG magic bytes when a palette is provided', async () => {
+      const input = await makeTestImageBuffer();
+      const result = await processWithDithering(input, 8, 8, palette);
+
+      expect(result.subarray(0, 3)).toEqual(JPEG_MAGIC);
+    });
+
+    it('should NOT return a PNG when a palette is provided', async () => {
+      const input = await makeTestImageBuffer();
+      const result = await processWithDithering(input, 8, 8, palette);
+
+      expect(result.subarray(0, 4)).not.toEqual(PNG_MAGIC);
+    });
+
+    it('should return a valid JPEG that sharp can decode', async () => {
+      const input = await makeTestImageBuffer();
+      const result = await processWithDithering(input, 8, 8, palette);
+      const metadata = await sharp(result).metadata();
+
+      expect(metadata.format).toBe('jpeg');
     });
   });
 });
